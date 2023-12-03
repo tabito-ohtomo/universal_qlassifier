@@ -14,8 +14,9 @@
 import numpy as np
 from scipy.optimize import minimize
 
+from fidelity_minimization import code_coords
 # This file provides the minimization for the cheap chi square
-from circuitery import code_coords, circuit
+from quantum_impl.circuitery import circuit
 
 
 def weighted_fidelity_minimization(theta, alpha, weight, train_data, reprs,

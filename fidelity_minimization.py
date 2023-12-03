@@ -11,7 +11,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 # This file provides the minimization for the cheap chi square
-from circuitery import code_coords, circuit
+from quantum_impl.circuitery import circuit
 
 
 # Universitat de Barcelona / Barcelona Supercomputing Center/Institut de Ciències del Cosmos
@@ -238,9 +238,9 @@ def fidelity(qState1, qState2) -> float:
     """
     This function returns the relativy fidelity of two pure states
     INPUT:
-        -2 pure states of the same dimension
+        - 2 pure states of the same dimension
     OUTPUT:
-        -relative fidelity
+        - relative fidelity
     """
     return np.abs(np.dot(np.conj(qState1), qState2))
 
@@ -282,3 +282,32 @@ def Av_chi_square(theta, alpha, train_data, reprs, entanglement):  # Chi in aver
         Av_Chi += _chi_square(theta, alpha, d, reprs, entanglement)
 
     return Av_Chi / len(train_data)
+
+
+def code_coords(theta, alpha, x):  # Encoding of coordinates
+    """
+    This functions converts theta, alpha and x in a new set of variables encoding the three of them properly
+    INPUT:
+        -theta: initial point for the theta parameters. The shape must be correct (qubits, layers, 3)
+        -alpha: initial point for the alpha parameters. The shape must be correct (qubits, layers, dim)
+        -x: one data for training, only the coordinates
+    OUTPUT:
+        -theta_aux: shifted thetas encoding alpha and x inside. Same shape as theta
+    """
+    theta_aux = theta.copy()
+    qubits = theta.shape[0]
+    layers = theta.shape[1]
+    for q in range(qubits):
+        for l in range(layers):
+            if len(x) <= 3:
+                for i in range(len(x)):
+                    theta_aux[q, l, i] += alpha[q, l, i] * x[i]
+            elif len(x) == 4:
+                theta_aux[q, l, 0] += alpha[q, l, 0] * x[0]
+                theta_aux[q, l, 1] += alpha[q, l, 1] * x[1]
+                theta_aux[q, l, 3] += alpha[q, l, 2] * x[2]
+                theta_aux[q, l, 4] += alpha[q, l, 3] * x[3]
+            else:
+                raise ValueError('Data has too many dimensions')
+
+    return theta_aux

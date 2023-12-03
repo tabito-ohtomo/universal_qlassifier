@@ -15,8 +15,8 @@
 
 import numpy as np
 
-from circuitery import code_coords, circuit
-from fidelity_minimization import fidelity
+from quantum_impl.circuitery import circuit
+from fidelity_minimization import fidelity, code_coords
 from weighted_fidelity_minimization import mat_fidelities, w_fidelities
 
 

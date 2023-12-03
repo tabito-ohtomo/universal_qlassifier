@@ -18,9 +18,9 @@ import numpy as np
 from matplotlib.cm import get_cmap
 from matplotlib.colors import Normalize
 
-from circuitery import code_coords, circuit
+from quantum_impl.circuitery import circuit
 from data_gen import data_generator
-from fidelity_minimization import fidelity_minimization
+from fidelity_minimization import fidelity_minimization, code_coords
 from problem_gen import problem_generator, representatives
 from save_data import write_epochs_file, write_epoch, close_epochs_file, create_folder, write_epochs_error_rate
 from save_data import write_summary, read_summary, name_folder, samples_paint, laea_x, laea_y
@@ -209,7 +209,7 @@ def paint_world(chi, problem, qubits, entanglement, layers, method, name,
 
     if bw == True:
         colors_classes = get_cmap('Greys')
-        norm_class = Normalize(vmin=-.1, vmax=np.max(sol[:, -3]) + .1)
+        norm_class = Normalize(vmin=-.1, vmax=np.max(sol_test[:, -3]) + .1)
 
         colors_rightwrong = get_cmap('Greys')
         norm_rightwrong = Normalize(vmin=-.1, vmax=1.1)
