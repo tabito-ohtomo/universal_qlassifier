@@ -1,23 +1,25 @@
 ##########################################################################
-#Quantum classifier
-#Adrián Pérez-Salinas, Alba Cervera-Lierta, Elies Gil, J. Ignacio Latorre
-#Code by APS
-#Code-checks by ACL
-#June 3rd 2019
+# Quantum classifier
+# Adrián Pérez-Salinas, Alba Cervera-Lierta, Elies Gil, J. Ignacio Latorre
+# Code by APS
+# Code-checks by ACL
+# June 3rd 2019
 
 
-#Universitat de Barcelona / Barcelona Supercomputing Center/Institut de Ciències del Cosmos
+# Universitat de Barcelona / Barcelona Supercomputing Center/Institut de Ciències del Cosmos
 
 ###########################################################################
 
 
-#This file provides the minimization for the cheap chi square
-from circuitery import code_coords, circuit
 import numpy as np
 from scipy.optimize import minimize
 
-def weighted_fidelity_minimization(theta, alpha, weight, train_data, reprs, 
-                       entanglement, method):
+# This file provides the minimization for the cheap chi square
+from circuitery import code_coords, circuit
+
+
+def weighted_fidelity_minimization(theta, alpha, weight, train_data, reprs,
+                                   entanglement, method):
     """
     This function takes the parameters of a problem and computes the optimal parameters for it, using different functions. It uses the weighted fidelity minimization
     INPUT: 
@@ -33,14 +35,15 @@ def weighted_fidelity_minimization(theta, alpha, weight, train_data, reprs,
         -alpha: optimized point for the alpha parameters. The shape is correct (qubits, layers, dim)
         -chi: value of the minimization function
     """
-    
+
     params, hypars = _translate_to_scipy(theta, alpha, weight)
-    results = minimize(_scipy_minimizing, params, 
-                       args = (hypars, train_data, reprs, entanglement),
+    results = minimize(_scipy_minimizing, params,
+                       args=(hypars, train_data, reprs, entanglement),
                        method=method)
     theta, alpha, weight = _translate_from_scipy(results['x'], hypars)
-            
+
     return theta, alpha, weight, results['fun']
+
 
 def _braket(qState1, qState2):
     """
@@ -52,8 +55,9 @@ def _braket(qState1, qState2):
     """
     return np.dot(np.conj(qState1), qState2)
 
+
 def mat_fidelities(theta_aux, weight, reprs, entanglement,
-                    return_circuit = False):
+                   return_circuit=False):
     """
     This function takes computes fidelities for a given circuit and weigths
     INPUT: 
@@ -74,12 +78,13 @@ def mat_fidelities(theta_aux, weight, reprs, entanglement,
         rdm = C.reduced_density_matrix(q)
         for l in range(labels):
             Fidelities[l, q] = np.real(np.conj(reprs[l]) @ rdm @ reprs[l])
-            
+
     if return_circuit == False:
         return Fidelities
-    
+
     if return_circuit == True:
         return Fidelities, C
+
 
 def w_fidelities(Fidelities, weight):
     """
@@ -93,6 +98,7 @@ def w_fidelities(Fidelities, weight):
     w_fid = np.sum(Fidelities * weight, axis=1)
     return w_fid
 
+
 def _reduced_density_matrix(a, b, qubit):
     """
     This function computes the partial trace of two quantum states with respect to one qubit
@@ -104,13 +110,13 @@ def _reduced_density_matrix(a, b, qubit):
         -rdm: analogy to the reduced density matrix
     """
     num_qubits = int(np.log2(len(a)))
-    rdm = np.zeros((2,2),dtype='complex')
+    rdm = np.zeros((2, 2), dtype='complex')
     for i in range(2):
         for j in range(i + 1):
-            for k in range(2**(num_qubits-1)):
-                S = k%(2**qubit) + 2*(k - k%(2**qubit))
-                rdm[i,j] += (a[S + i*2**qubit] * np.conj(b[S + j*2**qubit]))
-            rdm[j,i] = np.conj(rdm[i,j])
+            for k in range(2 ** (num_qubits - 1)):
+                S = k % (2 ** qubit) + 2 * (k - k % (2 ** qubit))
+                rdm[i, j] += (a[S + i * 2 ** qubit] * np.conj(b[S + j * 2 ** qubit]))
+            rdm[j, i] = np.conj(rdm[i, j])
 
     return rdm
 
@@ -160,7 +166,7 @@ def Av_Chi_Square(theta, alpha, weight, data, reprs, entanglement):
     Av_Chi = 0
     for d in data:
         Av_Chi += _chi(theta, alpha, weight, d, reprs, entanglement)
-        
+
     return Av_Chi / len(data)
 
 
@@ -172,8 +178,9 @@ def _translate_to_scipy(theta, alpha, weight):
     layers = theta.shape[1]
     dim = alpha.shape[-1]
     classes = weight.shape[0]
-    
-    return np.concatenate((theta.flatten(), alpha.flatten(),weight.flatten())), (qubits, layers, dim, classes)
+
+    return np.concatenate((theta.flatten(), alpha.flatten(), weight.flatten())), (qubits, layers, dim, classes)
+
 
 def _translate_from_scipy(params, hypars):
     """
@@ -181,16 +188,17 @@ def _translate_from_scipy(params, hypars):
     """
     (qubits, layers, dim, classes) = hypars
     if dim <= 3:
-        theta = params[:qubits * layers * 3]. reshape(qubits, layers, 3)
+        theta = params[:qubits * layers * 3].reshape(qubits, layers, 3)
         alpha = params[qubits * layers * 3: qubits * layers * 3 + qubits * layers * dim].reshape(qubits, layers, dim)
         weight = params[(qubits * layers * 3 + qubits * layers * dim):].reshape(classes, qubits)
-    
+
     if dim == 4:
-        theta = params[:qubits * layers * 6]. reshape(qubits, layers, 6)
+        theta = params[:qubits * layers * 6].reshape(qubits, layers, 6)
         alpha = params[qubits * layers * 6: qubits * layers * 6 + qubits * layers * dim].reshape(qubits, layers, dim)
         weight = params[(qubits * layers * 6 + qubits * layers * dim):].reshape(classes, qubits)
-    
+
     return theta, alpha, weight
+
 
 def _scipy_minimizing(params, hypars, train_data, reprs, entanglement):
     """

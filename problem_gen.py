@@ -1,17 +1,18 @@
 ##########################################################################
-#Quantum classifier
-#Adrián Pérez-Salinas, Alba Cervera-Lierta, Elies Gil, J. Ignacio Latorre
-#Code by APS
-#Code-checks by ACL
-#June 3rd 2019
+# Quantum classifier
+# Adrián Pérez-Salinas, Alba Cervera-Lierta, Elies Gil, J. Ignacio Latorre
+# Code by APS
+# Code-checks by ACL
+# June 3rd 2019
 
 
-#Universitat de Barcelona / Barcelona Supercomputing Center/Institut de Ciències del Cosmos
+# Universitat de Barcelona / Barcelona Supercomputing Center/Institut de Ciències del Cosmos
 
 ###########################################################################
 
 ## This file creates the problems and their settings
 import numpy as np
+
 
 def problem_generator(problem, qubits, layers, chi, qubits_lab=1):
     """
@@ -34,11 +35,11 @@ def problem_generator(problem, qubits, layers, chi, qubits_lab=1):
     if chi in ['fidelity', 'weighted_fidelity']: chi += '_chi'
     if chi not in ['fidelity_chi', 'weighted_fidelity_chi']:
         raise ValueError('Figure of merit is not valid')
-        
-    if chi == 'weighted_fidelity_chi' and qubits_lab != 1: 
+
+    if chi == 'weighted_fidelity_chi' and qubits_lab != 1:
         qubits_lab = 1
         print('WARNING: number of qubits for the label states has been changed to 1')
-    
+
     problem = problem.lower()
     if problem == 'circle':
         theta, alpha, reprs = _circle(qubits, layers, qubits_lab, chi)
@@ -58,24 +59,26 @@ def problem_generator(problem, qubits, layers, chi, qubits_lab=1):
         theta, alpha, reprs = _tricrown(qubits, layers, qubits_lab, chi)
     elif problem == 'hypersphere':
         theta, alpha, reprs = _hypersphere(qubits, layers, qubits_lab, chi)
-        
+
     else:
         raise ValueError('Problem is not valid')
-        
+
     if chi == 'fidelity_chi':
         return theta, alpha, reprs
     elif chi == 'weighted_fidelity_chi':
         weights = np.ones((len(reprs), qubits))
         return theta, alpha, weights, reprs
 
-#All these are auxiliary functions for problem_generator
+
+# All these are auxiliary functions for problem_generator
 def _circle(qubits, layers, qubits_lab, chi):
     classes = 2
     reprs = representatives(classes, qubits_lab)
     theta = np.random.rand(qubits, layers, 3)
     alpha = np.random.rand(qubits, layers, 2)
     return theta, alpha, reprs
-        
+
+
 def _3_circles(qubits, layers, qubits_lab, chi):
     classes = 4
     reprs = representatives(classes, qubits_lab)
@@ -83,55 +86,63 @@ def _3_circles(qubits, layers, qubits_lab, chi):
     alpha = np.random.rand(qubits, layers, 2)
     return theta, alpha, reprs
 
+
 def _wavy_lines(qubits, layers, qubits_lab, chi):
     classes = 4
     reprs = representatives(classes, qubits_lab)
     theta = np.random.rand(qubits, layers, 3)
     alpha = np.random.rand(qubits, layers, 2)
-    return theta, alpha, reprs        
+    return theta, alpha, reprs
+
 
 def _squares(qubits, layers, qubits_lab, chi):
     classes = 4
     reprs = representatives(classes, qubits_lab)
     theta = np.random.rand(qubits, layers, 3)
     alpha = np.random.rand(qubits, layers, 2)
-    return theta, alpha, reprs        
+    return theta, alpha, reprs
+
 
 def _non_convex(qubits, layers, qubits_lab, chi):
     classes = 2
     reprs = representatives(classes, qubits_lab)
     theta = np.random.rand(qubits, layers, 3)
     alpha = np.random.rand(qubits, layers, 2)
-    return theta, alpha, reprs        
+    return theta, alpha, reprs
+
 
 def _crown(qubits, layers, qubits_lab, chi):
     classes = 2
     reprs = representatives(classes, qubits_lab)
     theta = np.random.rand(qubits, layers, 3)
     alpha = np.random.rand(qubits, layers, 2)
-    return theta, alpha, reprs        
+    return theta, alpha, reprs
+
 
 def _tricrown(qubits, layers, qubits_lab, chi):
     classes = 3
     reprs = representatives(classes, qubits_lab)
     theta = np.random.rand(qubits, layers, 3)
     alpha = np.random.rand(qubits, layers, 2)
-    return theta, alpha, reprs      
+    return theta, alpha, reprs
+
 
 def _sphere(qubits, layers, qubits_lab, chi):
     classes = 2
     reprs = representatives(classes, qubits_lab)
     theta = np.random.rand(qubits, layers, 3)
     alpha = np.random.rand(qubits, layers, 3)
-    return theta, alpha, reprs   
+    return theta, alpha, reprs
+
 
 def _hypersphere(qubits, layers, qubits_lab, chi):
     classes = 2
     reprs = representatives(classes, qubits_lab)
     theta = np.random.rand(qubits, layers, 6)
     alpha = np.random.rand(qubits, layers, 4)
-    return theta, alpha, reprs   
-        
+    return theta, alpha, reprs
+
+
 def representatives(classes, qubits_lab):
     """
     This function creates the label states for the classification task
@@ -141,7 +152,7 @@ def representatives(classes, qubits_lab):
     OUTPUT:
         -reprs: the label states
     """
-    reprs = np.zeros((classes, 2**qubits_lab), dtype = 'complex')
+    reprs = np.zeros((classes, 2 ** qubits_lab), dtype='complex')
     if qubits_lab == 1:
         if classes == 0:
             raise ValueError('Nonsense classifier')
@@ -184,5 +195,5 @@ def representatives(classes, qubits_lab):
             reprs[1] = np.array([0, 1, 0, 0])
             reprs[2] = np.array([0, 0, 1, 0])
             reprs[3] = np.array([0, 0, 0, 1])
-            
+
     return reprs
