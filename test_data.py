@@ -15,8 +15,7 @@
 
 import numpy as np
 
-from quantum_impl.circuitery import circuit
-from fidelity_minimization import fidelity, code_coords
+from fidelity_minimization import calculate_fidelity, code_coords
 from weighted_fidelity_minimization import mat_fidelities, w_fidelities
 
 
@@ -62,8 +61,7 @@ def _claim_fidelity(theta, alpha, x, reprs, entanglement):
         the class of x, according to the classifier
     """
     theta_aux = code_coords(theta, alpha, x)
-    C = circuit(theta_aux, entanglement)
-    Fidelities = [fidelity(r, C.psi) for r in reprs]
+    Fidelities = [calculate_fidelity(theta_aux, entanglement, r) for r in reprs]
 
     return np.argmax(Fidelities)
 

@@ -18,7 +18,7 @@
 from quantum_impl.QuantumState import QCircuit
 
 
-def circuit(theta_aux, entanglement):
+def circuit(theta_aux, entanglement) -> QCircuit:
     """
     This creates the Quantum circuit for the problem using QuantumState.QCircuit
     INPUT: 

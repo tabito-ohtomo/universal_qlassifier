@@ -10,8 +10,10 @@ from typing import Tuple
 import numpy as np
 from scipy.optimize import minimize
 
+from quantum_circuit import create_circuit_and_project_to_ideal_vector, calculate_fidelity
+
+
 # This file provides the minimization for the cheap chi square
-from quantum_impl.circuitery import circuit
 
 
 # Universitat de Barcelona / Barcelona Supercomputing Center/Institut de Ciències del Cosmos
@@ -73,8 +75,7 @@ def _gradient(theta, alpha, data, reprs, entanglement):
 
     x, y = data
     theta_aux = code_coords(theta, alpha, x)
-    C = circuit(theta_aux, entanglement)
-    prod1 = np.dot(np.conj(reprs[y]), C.psi)
+    prod1 = create_circuit_and_project_to_ideal_vector(theta_aux, entanglement, reprs[y])
     prods2 = np.zeros(theta.shape, dtype='complex')
     (Q, L, I) = theta_aux.shape
 
@@ -82,8 +83,7 @@ def _gradient(theta, alpha, data, reprs, entanglement):
         for l in range(L):
             for i in range(I):
                 theta_aux[q, l, i] += np.pi
-                der_c = circuit(theta_aux, entanglement)
-                prods2[q, l, i] = np.dot(reprs[y], np.conj(der_c.psi))
+                prods2[q, l, i] = create_circuit_and_project_to_ideal_vector(theta_aux, entanglement, reprs[y])
                 theta_aux[q, l, i] -= np.pi
     grad_theta = np.asfarray(np.real(prod1 * prods2))
     if len(x) <= 3:
@@ -234,16 +234,6 @@ def _scipy_minimizing(params, hypars, train_data, reprs, entanglement):
     return -Av_chi_square(theta, alpha, train_data, reprs, entanglement)
 
 
-def fidelity(qState1, qState2) -> float:
-    """
-    This function returns the relativy fidelity of two pure states
-    INPUT:
-        - 2 pure states of the same dimension
-    OUTPUT:
-        - relative fidelity
-    """
-    return np.abs(np.dot(np.conj(qState1), qState2))
-
 
 def _chi_square(theta, alpha, data, reprs, entanglement):  # Chi for one point
     """
@@ -260,8 +250,7 @@ def _chi_square(theta, alpha, data, reprs, entanglement):  # Chi for one point
     #
     x, y = data
     theta_aux = code_coords(theta, alpha, x)
-    C = circuit(theta_aux, entanglement)
-    ans = fidelity(reprs[y], C.psi)
+    ans = calculate_fidelity(theta_aux, entanglement, reprs[y])
     return ans
 
 

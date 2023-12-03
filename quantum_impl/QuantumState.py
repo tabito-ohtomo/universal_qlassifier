@@ -18,7 +18,7 @@ import numpy as np
 class QCircuit(object):
     def __init__(self, qubits):
         self.num_qubits: int = qubits
-        self.psi: List[float] = [0] * 2 ** self.num_qubits
+        self.psi: List[complex] = [0] * 2 ** self.num_qubits
         self.psi[0] = 1
         self.E_x = 0
         self.E_y = 0
@@ -45,10 +45,10 @@ class QCircuit(object):
         for k in range(2 ** (self.num_qubits - 1)):
             S = k % (2 ** i) + 2 * (k - k % (2 ** i))
             S_ = S + 2 ** i
-            a = c * self.psi[S] - 1j * s * self.psi[S_];
-            b = -1j * s * self.psi[S] + c * self.psi[S_];
-            self.psi[S] = a;
-            self.psi[S_] = b;
+            a = c * self.psi[S] - 1j * s * self.psi[S_]
+            b = -1j * s * self.psi[S] + c * self.psi[S_]
+            self.psi[S] = a
+            self.psi[S_] = b
 
     def U2(self, i, phi, lamb):
         if i >= self.num_qubits:
