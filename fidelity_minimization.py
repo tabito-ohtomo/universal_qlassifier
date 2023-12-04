@@ -267,6 +267,25 @@ def Av_chi_square(theta, alpha, train_data, reprs, entanglement):  # Chi in aver
         -Averaged chi^2 for data
     """
     Av_Chi = 0
+    mean_0 = np.mean(list(map(lambda d: d[0][0], train_data)))
+    mean_1 = np.mean(list(map(lambda d: d[0][1], train_data)))
+    mean_2 = np.mean(list(map(lambda d: d[0][2], train_data)))
+    mean_3 = np.mean(list(map(lambda d: d[0][3], train_data)))
+
+    sigma_0 = np.std(list(map(lambda d: d[0][0], train_data)))
+    sigma_1 = np.std(list(map(lambda d: d[0][1], train_data)))
+    sigma_2 = np.std(list(map(lambda d: d[0][2], train_data)))
+    sigma_3 = np.std(list(map(lambda d: d[0][3], train_data)))
+
+    print(mean_0)
+    print(mean_1)
+    print(mean_2)
+    print(mean_3)
+    print(sigma_0)
+    print(sigma_1)
+    print(sigma_2)
+    print(sigma_3)
+
     for d in train_data:
         Av_Chi += _chi_square(theta, alpha, d, reprs, entanglement)
 
