@@ -60,8 +60,8 @@ def _claim_fidelity(theta, alpha, x, reprs, entanglement):
     OUTPUT:
         the class of x, according to the classifier
     """
-    theta_aux = code_coords(theta, alpha, x)
-    Fidelities = [calculate_fidelity(theta_aux, entanglement, r) for r in reprs]
+    # theta_aux = code_coords(theta, alpha, x)
+    Fidelities = [calculate_fidelity(theta, alpha, x, entanglement, r) for r in reprs]
 
     return np.argmax(Fidelities)
 

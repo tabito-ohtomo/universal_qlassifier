@@ -249,8 +249,8 @@ def _chi_square(theta, alpha, data, reprs, entanglement):  # Chi for one point
     """
     #
     x, y = data
-    theta_aux = code_coords(theta, alpha, x)
-    ans = calculate_fidelity(theta_aux, entanglement, reprs[y])
+    # theta_aux = code_coords(theta, alpha, x)
+    ans = calculate_fidelity(theta, alpha, x, entanglement, reprs[y])
     return ans
 
 
@@ -291,11 +291,11 @@ def code_coords(theta, alpha, x):  # Encoding of coordinates
             if len(x) <= 3:
                 for i in range(len(x)):
                     theta_aux[q, l, i] += alpha[q, l, i] * x[i]
-            elif len(x) == 4:
-                theta_aux[q, l, 0] += alpha[q, l, 0] * x[0]
-                theta_aux[q, l, 1] += alpha[q, l, 1] * x[1]
-                theta_aux[q, l, 2] += alpha[q, l, 2] * x[2]
-                theta_aux[q, l, 3] += alpha[q, l, 3] * x[3]
+            # elif len(x) == 4:
+            #     theta_aux[q, l, 0] += alpha[q, l, 0] * x[0]
+            #     theta_aux[q, l, 1] += alpha[q, l, 1] * x[1]
+            #     theta_aux[q, l, 2] += alpha[q, l, 2] * x[2]
+            #     theta_aux[q, l, 3] += alpha[q, l, 3] * x[3]
             else:
                 raise ValueError('Data has too many dimensions')
 
