@@ -294,8 +294,8 @@ def code_coords(theta, alpha, x):  # Encoding of coordinates
             elif len(x) == 4:
                 theta_aux[q, l, 0] += alpha[q, l, 0] * x[0]
                 theta_aux[q, l, 1] += alpha[q, l, 1] * x[1]
-                theta_aux[q, l, 3] += alpha[q, l, 2] * x[2]
-                theta_aux[q, l, 4] += alpha[q, l, 3] * x[3]
+                theta_aux[q, l, 2] += alpha[q, l, 2] * x[2]
+                theta_aux[q, l, 3] += alpha[q, l, 3] * x[3]
             else:
                 raise ValueError('Data has too many dimensions')
 

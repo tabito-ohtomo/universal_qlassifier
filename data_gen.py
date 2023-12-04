@@ -4,7 +4,7 @@
 # Code by APS
 # Code-checks by ACL
 # June 3rd 2019
-from typing import Tuple, List, Any
+from typing import Tuple, List, Any, TypeAlias
 
 import numpy as np
 
@@ -13,7 +13,10 @@ import numpy as np
 ## This file creates the data points for the different problems to be tackled by the quantum classifier
 
 problems = ['circle', '3 circles', 'wavy circle', 'hypersphere', 'tricrown', 'non convex', 'crown', 'sphere', 'squares',
-            'wavy lines']
+            'wavy lines', 'iris']
+
+
+Data: TypeAlias = List[Tuple[np.ndarray[Any] | float, int]]
 
 
 def data_generator(problem, samples=None) -> Tuple[List, Any]:
@@ -29,6 +32,15 @@ def data_generator(problem, samples=None) -> Tuple[List, Any]:
     problem = problem.lower()
     if problem not in problems:
         raise ValueError('problem must be one of {}'.format(problems))
+
+    if problem == 'iris':
+        from sklearn.datasets import load_iris
+        data = load_iris()
+        ret = []
+        for d, t in zip(data.data, data.target):
+            ret.append([d, t])
+        return ret, ()
+
     if samples == None:
         if problem == 'sphere':
             samples = 4500
@@ -67,7 +79,7 @@ def data_generator(problem, samples=None) -> Tuple[List, Any]:
     return data, settings
 
 
-def _circle(samples):
+def _circle(samples: int) -> Tuple[Data, Tuple[List[float], List[float]]]:
     centers = np.array([[0, 0]])
     radii = np.array([np.sqrt(2 / np.pi)])
     data = []

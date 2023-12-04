@@ -41,7 +41,9 @@ def problem_generator(problem, qubits, layers, chi, qubits_lab=1):
         print('WARNING: number of qubits for the label states has been changed to 1')
 
     problem = problem.lower()
-    if problem == 'circle':
+    if problem == 'iris':
+        theta, alpha, reprs = _iris(qubits, layers, qubits_lab, chi)
+    elif problem == 'circle':
         theta, alpha, reprs = _circle(qubits, layers, qubits_lab, chi)
     elif problem == '3 circles':
         theta, alpha, reprs = _3_circles(qubits, layers, qubits_lab, chi)
@@ -71,6 +73,13 @@ def problem_generator(problem, qubits, layers, chi, qubits_lab=1):
 
 
 # All these are auxiliary functions for problem_generator
+def _iris(qubits, layers, qubits_lab, chi):
+    classes = 3
+    reprs = representatives(classes, qubits_lab)
+    theta = np.random.rand(qubits, layers, 6)
+    alpha = np.random.rand(qubits, layers, 4)
+    return theta, alpha, reprs
+
 def _circle(qubits, layers, qubits_lab, chi):
     classes = 2
     reprs = representatives(classes, qubits_lab)
