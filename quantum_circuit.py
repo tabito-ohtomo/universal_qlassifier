@@ -9,7 +9,7 @@ from quantum_impl.circuitery import circuit
 StateVectorData: TypeAlias = np.ndarray[np.complex64] | List[complex]
 
 
-
+QUANTUM_IMPL = 'qiskit'
 
 def inner_product(vector1: StateVectorData, vector2: StateVectorData) -> float:
     return np.dot(np.conj(vector1), vector2)
@@ -20,12 +20,14 @@ def create_circuit_and_project_to_ideal_vector(
     # theta_aux: np.ndarray,
         entanglement: str, ideal_vector: StateVectorData
 ) -> float:
-    return inner_product(ideal_vector, create_circuit_by_qiskit(theta, alpha, x, entanglement))
+    if QUANTUM_IMPL == 'qiskit':
+        return inner_product(ideal_vector, create_circuit_by_qiskit(theta, alpha, x, entanglement))
+    elif QUANTUM_IMPL == 'implmented':
+        theta_aux = code_coords(theta, alpha, x)
+        c = circuit(theta_aux, entanglement)
+        return inner_product(ideal_vector, c.psi)
 
-    # theta_aux = code_coords(theta, alpha, x)
-    # c = circuit(theta_aux, entanglement)
-    # return inner_product(ideal_vector, c.psi)
-    #
+
 
 def create_circuit_by_qiskit(
         theta, alpha, x,
