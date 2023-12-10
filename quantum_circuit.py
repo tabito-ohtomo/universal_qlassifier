@@ -4,9 +4,9 @@ import numpy as np
 from qiskit import QuantumCircuit, Aer, execute
 from qiskit_ibm_runtime import QiskitRuntimeService
 
+from domain.quantum import StateVectorData
 from quantum_impl.circuitery import circuit
 
-StateVectorData: TypeAlias = np.ndarray[np.complex64] | List[complex]
 
 
 QUANTUM_IMPL = 'qiskit'

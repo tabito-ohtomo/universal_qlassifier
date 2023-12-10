@@ -87,16 +87,16 @@ def minimizer(chi, problem, qubits, entanglement, layers, method, name,
         acc_test = tester(theta, alpha, test_data, reprs, entanglement, chi)
         write_summary(chi, problem, qubits, entanglement, layers, method, name,
                       theta, alpha, 0, f, acc_train, acc_test, seed, epochs=epochs)
-    elif chi == 'weighted_fidelity_chi':
-        qubits_lab = 1
-        theta, alpha, weight, reprs = problem_generator(problem, qubits, layers, chi,
-                                                        qubits_lab=qubits_lab)
-        theta, alpha, weight, f = weighted_fidelity_minimization(theta, alpha, weight, train_data, reprs,
-                                                                 entanglement, method)
-        acc_train = tester(theta, alpha, train_data, reprs, entanglement, chi, weights=weight)
-        acc_test = tester(theta, alpha, test_data, reprs, entanglement, chi, weights=weight)
-        write_summary(chi, problem, qubits, entanglement, layers, method, name,
-                      theta, alpha, weight, f, acc_train, acc_test, seed, epochs=epochs)
+    # elif chi == 'weighted_fidelity_chi':
+    #     qubits_lab = 1
+    #     theta, alpha, weight, reprs = problem_generator(problem, qubits, layers, chi,
+    #                                                     qubits_lab=qubits_lab)
+    #     theta, alpha, weight, f = weighted_fidelity_minimization(theta, alpha, weight, train_data, reprs,
+    #                                                              entanglement, method)
+    #     acc_train = tester(theta, alpha, train_data, reprs, entanglement, chi, weights=weight)
+    #     acc_test = tester(theta, alpha, test_data, reprs, entanglement, chi, weights=weight)
+    #     write_summary(chi, problem, qubits, entanglement, layers, method, name,
+    #                   theta, alpha, weight, f, acc_train, acc_test, seed, epochs=epochs)
 
 
 def painter(chi, problem, qubits, entanglement, layers, method, name,
