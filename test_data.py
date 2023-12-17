@@ -4,7 +4,7 @@
 # Code by APS
 # Code-checks by ACL
 # June 3rd 2019
-
+from typing import Tuple, Dict
 
 # Universitat de Barcelona / Barcelona Supercomputing Center/Institut de Ciències del Cosmos
 
@@ -15,6 +15,7 @@
 
 import numpy as np
 
+from domain.learning import LabeledDataSet, Label
 from fidelity_minimization import calculate_fidelity, code_coords
 from weighted_fidelity_minimization import mat_fidelities, w_fidelities
 
@@ -85,7 +86,7 @@ def _claim_weighted_fidelity(theta, alpha, weight, x, reprs, entanglement):
     return np.argmax(w_fid)
 
 
-def tester(theta, alpha, test_data, reprs, entanglement, chi, weights=None):
+def tester(theta, alpha, test_data: LabeledDataSet, reprs, entanglement, chi, weights=None):
     """
     This function takes the parameters of a solved problem and one data computes how many points are correct
     INPUT: 
@@ -99,12 +100,22 @@ def tester(theta, alpha, test_data, reprs, entanglement, chi, weights=None):
     OUTPUT:
         -success normalized
     """
+    total_map: Dict[Label, int] = {}
+    acc_map: Dict[Label, int] = {}
+    for label in set(map(lambda x: x[1], test_data)):
+        total_map[label] = 0
+        acc_map[label] = 0
     acc = 0
-    for i, d in enumerate(test_data):
+    for d in test_data:
         x, y = d
         y_ = _claim(theta, alpha, weights, x, reprs, entanglement, chi)
+        total_map[y] = total_map[y] + 1
         if y == y_:
             acc += 1
+            acc_map[y] = acc_map[y] + 1
+
+    print(total_map)
+    print(acc_map)
 
     return acc / len(test_data)
 

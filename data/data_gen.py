@@ -41,12 +41,12 @@ def data_generator(problem, samples=None) -> Tuple[LabeledDataSetToLearn, Any]:
 
         train_data = []
         test_data = []
-        train_data.extend(data[:30])
-        train_data.extend(data[50:80])
-        train_data.extend(data[100:130])
-        test_data.extend(data[30:50])
-        test_data.extend(data[80:100])
-        test_data.extend(data[130:150])
+        train_data.extend(ret[:30])
+        train_data.extend(ret[50:80])
+        train_data.extend(ret[100:130])
+        test_data.extend(ret[30:50])
+        test_data.extend(ret[80:100])
+        test_data.extend(ret[130:150])
         return (train_data, test_data), ()
 
     if samples is None:

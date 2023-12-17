@@ -54,7 +54,6 @@ class Context:
         # theta_aux = code_coords(theta, alpha, x)
         return np.abs(self.create_circuit_and_project_to_ideal_vector(x, ideal_vector))
 
-
     def calculate_averaged_chi_square(self, train_data, repr) -> float:
         chi_square = 0.0
         for x, y in train_data:

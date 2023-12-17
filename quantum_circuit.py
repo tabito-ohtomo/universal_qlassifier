@@ -9,7 +9,7 @@ from quantum_impl.circuitery import circuit
 
 
 
-QUANTUM_IMPL = 'qiskit'
+QUANTUM_IMPL = 'implmented'
 
 def inner_product(vector1: StateVectorData, vector2: StateVectorData) -> float:
     return np.dot(np.conj(vector1), vector2)
