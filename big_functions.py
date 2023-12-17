@@ -54,27 +54,6 @@ def minimizer(chi, problem, qubits, entanglement, layers, method, name,
     """
     np.random.seed(seed)
     (train_data, test_data), _ = data_generator(problem)
-    # if problem == 'iris':
-    #     train_data = []
-    #     test_data = []
-    #     train_data.extend(data[:30])
-    #     train_data.extend(data[50:80])
-    #     train_data.extend(data[100:130])
-    #     test_data.extend(data[30:50])
-    #     test_data.extend(data[80:100])
-    #     test_data.extend(data[130:150])
-    #     print(train_data)
-    #     print('===============================')
-    #     print(test_data)
-    # elif problem == 'sphere':
-    #     train_data = data[:500]
-    #     test_data = data[500:]
-    # elif problem == 'hypersphere':
-    #     train_data = data[:1000]
-    #     test_data = data[1000:]
-    # else:
-    #     train_data = data[:200]
-    #     test_data = data[200:]
 
     if chi == 'fidelity_chi':
         qubits_lab = qubits
