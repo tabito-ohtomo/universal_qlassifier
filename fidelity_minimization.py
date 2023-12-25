@@ -11,6 +11,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 from quantum_circuit import create_circuit_and_project_to_ideal_vector, calculate_fidelity
+from quantum_optimization_context import QuantumContext
 
 
 # This file provides the minimization for the cheap chi square
@@ -20,7 +21,9 @@ from quantum_circuit import create_circuit_and_project_to_ideal_vector, calculat
 ###########################################################################
 
 
-def fidelity_minimization(theta, alpha, train_data, reprs,
+def fidelity_minimization(
+        quantum_context: QuantumContext,
+        theta, alpha, train_data, reprs,
                           entanglement, method,
                           batch_size, eta, epochs) -> Tuple[np.ndarray, np.ndarray, float]:
     """

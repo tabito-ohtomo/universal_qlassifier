@@ -18,14 +18,14 @@ import numpy as np
 from matplotlib.cm import get_cmap
 from matplotlib.colors import Normalize
 
-from quantum_impl.circuitery import circuit
 from data.data_gen import data_generator
 from fidelity_minimization import fidelity_minimization, code_coords
 from problem_gen import problem_generator, representatives
+from quantum_impl.circuitery import circuit
+from quantum_optimization_context import QuantumContext
 from save_data import write_epochs_file, write_epoch, close_epochs_file, create_folder, write_epochs_error_rate
 from save_data import write_summary, read_summary, name_folder, samples_paint, laea_x, laea_y
 from test_data import Accuracy_test, tester
-from weighted_fidelity_minimization import weighted_fidelity_minimization
 
 
 def minimizer(chi, problem, qubits, entanglement, layers, method, name,
@@ -57,8 +57,21 @@ def minimizer(chi, problem, qubits, entanglement, layers, method, name,
 
     if chi == 'fidelity_chi':
         qubits_lab = qubits
+
         theta, alpha, reprs = problem_generator(problem, qubits, layers, chi,
                                                 qubits_lab=qubits_lab)
+
+        quantum_context = QuantumContext(
+            training_data=train_data,
+            test_data=test_data,
+            parameters={'theta': theta,
+                        'alpha': alpha},
+            hyper_parameters={'qubits': theta.shape[0],
+                              'layers': theta.shape[1],
+                              'dim': alpha.shape[-1]},
+            parameters_impl_specific={'entanglement': entanglement}
+        )
+
         theta, alpha, f = fidelity_minimization(theta, alpha, train_data, reprs,
                                                 entanglement, method,
                                                 batch_size, eta, epochs)

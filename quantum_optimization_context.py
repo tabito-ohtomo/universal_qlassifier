@@ -1,5 +1,6 @@
+from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
 
 import numpy as np
 
@@ -14,6 +15,7 @@ class OPTIMIZATION_QUANUM_IMPL(Enum):
     QISKIT = 2
 
 
+@dataclass
 class QuantumContext:
     optimization_quantum_impl = OPTIMIZATION_QUANUM_IMPL.SALINAS_2020
     training_data: LabeledDataSet
@@ -21,14 +23,24 @@ class QuantumContext:
     parameters: Dict[str, np.ndarray]
     hyper_parameters: Dict[str, float]
     parameters_impl_specific: Dict[str, Any]
+    #
+    # def create_circuit(self, theta, alpha, x):
+    #     if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.SALINAS_2020:
+    #         raise NotImplementedError()
 
-    def __init__(self):
-        pass
+    def translate_parameters_to_scipy(self) -> np.ndarray[float]:
+        if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
+            pass
+        elif self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.SALINAS_2020:
+            return np.concatenate((
+                self.parameters['theta'].flatten(),
+                self.parameters['alpha'].flatten()))
 
-    def create_circuit(self, theta, alpha, x):
-        if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.SALINAS_2020:
-            raise NotImplementedError()
-
+    def translate_hyper_parameters_to_scipy(self) -> Tuple[float, float, float]:  # -> Tuple[int]
+        if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
+            pass
+        elif self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.SALINAS_2020:
+            return self.hyper_parameters['qubits'], self.hyper_parameters['layers'], self.hyper_parameters['dim']
 
     def create_circuit_and_project_to_ideal_vector(
             self, x,
@@ -38,7 +50,7 @@ class QuantumContext:
             entanglement = self.parameters_impl_specific['entanglement']
             pass
             # return inner_product(ideal_vector, create_circuit_by_qiskit(theta, alpha, x, entanglement))
-        if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.SALINAS_2020:
+        elif self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.SALINAS_2020:
             theta = self.parameters['theta']
             alpha = self.parameters['alpha']
             entanglement = self.parameters_impl_specific['entanglement']
