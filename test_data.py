@@ -17,6 +17,7 @@ import numpy as np
 
 from domain.learning import LabeledDataSet, Label
 from fidelity_minimization import calculate_fidelity, code_coords
+from quantum_optimization_context import QuantumContext
 from weighted_fidelity_minimization import mat_fidelities, w_fidelities
 
 
@@ -86,7 +87,9 @@ def _claim_weighted_fidelity(theta, alpha, weight, x, reprs, entanglement):
     return np.argmax(w_fid)
 
 
-def tester(theta, alpha, test_data: LabeledDataSet, reprs, entanglement, chi, weights=None):
+def tester(
+        quantum_context: QuantumContext,
+        theta, alpha, test_data: LabeledDataSet, reprs, entanglement, chi, weights=None):
     """
     This function takes the parameters of a solved problem and one data computes how many points are correct
     INPUT: 

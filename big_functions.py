@@ -72,13 +72,13 @@ def minimizer(chi, problem, qubits, entanglement, layers, method, name,
             parameters_impl_specific={'entanglement': entanglement}
         )
 
-        theta, alpha, f = fidelity_minimization(theta, alpha, train_data, reprs,
+        theta, alpha, f = fidelity_minimization(quantum_context, theta, alpha, train_data, reprs,
                                                 entanglement, method,
                                                 batch_size, eta, epochs)
         print('==================================== train ====================================')
-        acc_train = tester(theta, alpha, train_data, reprs, entanglement, chi)
+        acc_train = tester(quantum_context, theta, alpha, train_data, reprs, entanglement, chi)
         print('==================================== test ====================================')
-        acc_test = tester(theta, alpha, test_data, reprs, entanglement, chi)
+        acc_test = tester(quantum_context, theta, alpha, test_data, reprs, entanglement, chi)
 
         write_summary(chi, problem, qubits, entanglement, layers, method, name,
                       theta, alpha, 0, f, acc_train, acc_test, seed, epochs=epochs)
