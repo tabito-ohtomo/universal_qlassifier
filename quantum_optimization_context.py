@@ -6,7 +6,6 @@ import numpy as np
 
 from domain.learning import LabeledDataSet
 from domain.quantum import StateVectorData
-from quantum_circuit import inner_product, create_circuit_by_qiskit
 from quantum_impl.circuitery import circuit
 
 
@@ -35,6 +34,21 @@ class QuantumContext:
             return np.concatenate((
                 self.parameters['theta'].flatten(),
                 self.parameters['alpha'].flatten()))
+
+    def kick_back_parameters_from_scipy_params(self, scipy_params):
+        if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
+            pass
+        elif self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.SALINAS_2020:
+            qubits = self.hyper_parameters['qubits']
+            layers = self.hyper_parameters['layers']
+            dim = self.hyper_parameters['dim']
+            if dim <= 3:
+                self.parameters['theta'] = scipy_params[:qubits * layers * 3].reshape(qubits, layers, 3)
+                self.parameters['alpha'] = scipy_params[qubits * layers * 3: qubits * layers * 3 + qubits * layers * dim].reshape(qubits, layers, dim)
+            else: # dim == 4
+                self.parameters['theta'] = scipy_params[:qubits * layers * 6].reshape(qubits, layers, 6)
+                self.parameters['alpha'] = scipy_params[qubits * layers * 6: qubits * layers * 6 + qubits * layers * dim].reshape(qubits, layers, dim)
+
 
     def translate_hyper_parameters_to_scipy(self) -> Tuple[float, float, float]:  # -> Tuple[int]
         if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
@@ -73,8 +87,9 @@ class QuantumContext:
         return chi_square / len(train_data)
 
 
-def code_coords(theta: np.array[int, int, int], alpha: np.array[int, int. int], x: List[List[float]])\
-        -> np.array[int, int, int]:  # Encoding of coordinates
+def code_coords(theta: np.ndarray[np.ndarray[np.ndarray[int]]], alpha: np.ndarray[np.ndarray[np.ndarray[int]]],
+                x: List[List[float]])\
+        -> np.ndarray[np.ndarray[np.ndarray[int]]]:  # Encoding of coordinates
     """
     This functions converts theta, alpha and x in a new set of variables encoding the three of them properly
     INPUT:
@@ -101,3 +116,7 @@ def code_coords(theta: np.array[int, int, int], alpha: np.array[int, int. int], 
                 raise ValueError('Data has too many dimensions')
 
     return theta_aux
+
+
+def inner_product(vector1: StateVectorData, vector2: StateVectorData) -> float:
+    return np.dot(np.conj(vector1), vector2)

@@ -6,8 +6,7 @@ from qiskit_ibm_runtime import QiskitRuntimeService
 
 from domain.quantum import StateVectorData
 from quantum_impl.circuitery import circuit
-
-
+from quantum_optimization_context import QuantumContext
 
 QUANTUM_IMPL = 'implmented'
 
@@ -109,15 +108,6 @@ def create_circuit_by_qiskit(
     print(statevec[0])
     return statevec.data
 
-
-
-def calculate_fidelity(
-        theta, alpha, x,
-        # theta_aux: np.ndarray,
-        entanglement: str, ideal_vector: StateVectorData
-) -> float:
-    # theta_aux = code_coords(theta, alpha, x)
-    return np.abs(create_circuit_and_project_to_ideal_vector(theta, alpha, x, entanglement, ideal_vector))
 
 
 def code_coords(theta, alpha, x):  # Encoding of coordinates

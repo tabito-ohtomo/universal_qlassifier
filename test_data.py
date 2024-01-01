@@ -16,12 +16,14 @@ from typing import Tuple, Dict
 import numpy as np
 
 from domain.learning import LabeledDataSet, Label
-from fidelity_minimization import calculate_fidelity, code_coords
+from fidelity_minimization import code_coords
 from quantum_optimization_context import QuantumContext
 from weighted_fidelity_minimization import mat_fidelities, w_fidelities
 
 
-def _claim(theta, alpha, weight, x, reprs, entanglement, chi):
+def _claim(
+        quantum_context: QuantumContext,
+        theta, alpha, weight, x, reprs, entanglement, chi):
     """
     This function takes the parameters of a solved problem and one data computes classification of this point
     INPUT: 
@@ -41,15 +43,17 @@ def _claim(theta, alpha, weight, x, reprs, entanglement, chi):
         raise ValueError('Figure of merit is not valid')
 
     if chi == 'fidelity_chi':
-        y_ = _claim_fidelity(theta, alpha, x, reprs, entanglement)
+        y_ = _claim_fidelity(quantum_context, x, reprs)
 
-    if chi == 'weighted_fidelity_chi':
-        y_ = _claim_weighted_fidelity(theta, alpha, weight, x, reprs, entanglement)
+    # if chi == 'weighted_fidelity_chi':
+    #     y_ = _claim_weighted_fidelity(quantum_context, theta, alpha, weight, x, reprs, entanglement)
 
     return y_
 
 
-def _claim_fidelity(theta, alpha, x, reprs, entanglement):
+def _claim_fidelity(
+        quantum_context: QuantumContext,
+        x, reprs):
     """
     This function is inside _claim for fidelity_chi
     INPUT: 
@@ -63,9 +67,9 @@ def _claim_fidelity(theta, alpha, x, reprs, entanglement):
         the class of x, according to the classifier
     """
     # theta_aux = code_coords(theta, alpha, x)
-    Fidelities = [calculate_fidelity(theta, alpha, x, entanglement, r) for r in reprs]
+    fidelities = [quantum_context.calculate_fidelity(x, r) for r in reprs]
 
-    return np.argmax(Fidelities)
+    return np.argmax(fidelities)
 
 
 def _claim_weighted_fidelity(theta, alpha, weight, x, reprs, entanglement):
@@ -111,11 +115,14 @@ def tester(
     acc = 0
     for d in test_data:
         x, y = d
-        y_ = _claim(theta, alpha, weights, x, reprs, entanglement, chi)
+        y_ = _claim(quantum_context, theta, alpha, weights, x, reprs, entanglement, chi)
         total_map[y] = total_map[y] + 1
         if y == y_:
             acc += 1
             acc_map[y] = acc_map[y] + 1
+
+    print('expected: ' + str(y))
+    print('actual: ' + str(y_))
 
     print(total_map)
     print(acc_map)

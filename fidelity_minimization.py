@@ -10,7 +10,7 @@ from typing import Tuple
 import numpy as np
 from scipy.optimize import minimize
 
-from quantum_circuit import create_circuit_and_project_to_ideal_vector, calculate_fidelity
+from quantum_circuit import create_circuit_and_project_to_ideal_vector
 from quantum_optimization_context import QuantumContext
 
 
@@ -44,20 +44,20 @@ def fidelity_minimization(
         -chi: value of the minimization function
     """
 
-    if method == 'SGD':
-        thetas, alphas, chis = _sgd(theta, alpha, train_data, reprs,
-                                    entanglement, eta, batch_size, epochs)
-        i = chis.index(max(chis))
-        return thetas[i], alphas[i], chis[i]
+    # if method == 'SGD':
+    #     thetas, alphas, chis = _sgd(theta, alpha, train_data, reprs,
+    #                                 entanglement, eta, batch_size, epochs)
+    #     i = chis.index(max(chis))
+    #     return thetas[i], alphas[i], chis[i]
+    #
+    # else:
+    params, hypars = _translate_to_scipy(theta, alpha)
+    results = minimize(_scipy_minimizing, params,
+                       args=(quantum_context, hypars, train_data, reprs),
+                       method=method)
+    theta, alpha = _translate_from_scipy(results['x'], hypars)
 
-    else:
-        params, hypars = _translate_to_scipy(theta, alpha)
-        results = minimize(_scipy_minimizing, params,
-                           args=(hypars, train_data, reprs, entanglement),
-                           method=method)
-        theta, alpha = _translate_from_scipy(results['x'], hypars)
-
-        return theta, alpha, results['fun']
+    return theta, alpha, results['fun']
 
 
 def _gradient(theta, alpha, data, reprs, entanglement):
@@ -132,7 +132,9 @@ def _train_batch(theta, alpha, batch, reprs, entanglement):
     return gradient_theta / len(batch), gradient_alpha / len(batch)
 
 
-def _session_sgd(theta, alpha, train_data, reprs, entanglement, eta, batch_size):
+def _session_sgd(
+        quantum_context: QuantumContext,
+        theta, alpha, train_data, reprs, entanglement, eta, batch_size):
     """
     This function computes a gradient descent step for all batches
     INPUT:
@@ -157,7 +159,7 @@ def _session_sgd(theta, alpha, train_data, reprs, entanglement, eta, batch_size)
         theta += eta * gradient_theta_batch  # This sign is very important, it is the difference between maximizing or minimizing.
         alpha += eta * gradient_alpha_batch
 
-    return theta, alpha, Av_chi_square(theta, alpha, train_data, reprs, entanglement)
+    return theta, alpha, Av_chi_square(quantum_context, train_data, reprs)
 
 
 def _sgd(theta, alpha, train_data, reprs, entanglement, eta, batch_size, epochs):
@@ -221,7 +223,10 @@ def _translate_from_scipy(params, hypars):
     return theta, alpha
 
 
-def _scipy_minimizing(params, hypars, train_data, reprs, entanglement):
+def _scipy_minimizing(
+        params,
+        quantum_context: QuantumContext,
+        hypars, train_data, reprs):
     """
     This function returns the chi^2 function for using scipy
     INPUT:
@@ -233,12 +238,15 @@ def _scipy_minimizing(params, hypars, train_data, reprs, entanglement):
     OUTPUT:
         - -Av_chi_square, which is the function we want to minimize
     """
-    theta, alpha = _translate_from_scipy(params, hypars)
-    return -Av_chi_square(theta, alpha, train_data, reprs, entanglement)
+    # theta, alpha = _translate_from_scipy(params, hypars)
+    quantum_context.kick_back_parameters_from_scipy_params(params)
+    return -Av_chi_square(quantum_context, train_data, reprs)
 
 
 
-def _chi_square(theta, alpha, data, reprs, entanglement):  # Chi for one point
+def _chi_square(
+        quantum_context: QuantumContext,
+        data, reprs):  # Chi for one point
     """
     This function compute chi^2 for only one point
     INPUT: 
@@ -253,11 +261,14 @@ def _chi_square(theta, alpha, data, reprs, entanglement):  # Chi for one point
     #
     x, y = data
     # theta_aux = code_coords(theta, alpha, x)
-    ans = calculate_fidelity(theta, alpha, x, entanglement, reprs[y])
+    # ans = calculate_fidelity(quantum_context, x, reprs[y])
+    ans = quantum_context.calculate_fidelity(x, reprs[y])
     return ans
 
 
-def Av_chi_square(theta, alpha, train_data, reprs, entanglement):  # Chi in average
+def Av_chi_square(
+        quantum_context: QuantumContext,
+        train_data, reprs):  # Chi in average
     """
     This function compute chi^2 for only one point
     INPUT: 
@@ -290,7 +301,7 @@ def Av_chi_square(theta, alpha, train_data, reprs, entanglement):  # Chi in aver
     print(sigma_3)
 
     for d in train_data:
-        Av_Chi += _chi_square(theta, alpha, d, reprs, entanglement)
+        Av_Chi += _chi_square(quantum_context, d, reprs)
 
     return Av_Chi / len(train_data)
 

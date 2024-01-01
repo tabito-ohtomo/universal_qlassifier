@@ -1,4 +1,4 @@
-from big_functions import minimizer, painter, paint_world
+from big_functions import minimizer# painter, paint_world
 
 qubits = 2  # integer, number of qubits
 layers = 4  # integer, number of layers (time we reupload data)
