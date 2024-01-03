@@ -23,9 +23,8 @@ from quantum_optimization_context import QuantumContext
 
 def fidelity_minimization(
         quantum_context: QuantumContext,
-        theta, alpha, train_data, reprs,
-                          method) -> Tuple[np.ndarray, np.ndarray, float]:
-                          # batch_size, eta, epochs) -> Tuple[np.ndarray, np.ndarray, float]:
+        train_data, reprs) -> float:
+    # batch_size, eta, epochs) -> Tuple[np.ndarray, np.ndarray, float]:
     """
     This function takes the parameters of a problem and computes the optimal parameters for it, using different functions. It uses the fidelity minimization
     INPUT:
@@ -51,14 +50,17 @@ def fidelity_minimization(
     #     return thetas[i], alphas[i], chis[i]
     #
     # else:
-    params, hypars = _translate_to_scipy(theta, alpha)
+    # params, hypars = _translate_to_scipy(theta, alpha)
+    params = quantum_context.translate_parameters_to_scipy()
     results = minimize(_scipy_minimizing, params,
                        args=(quantum_context, train_data, reprs),
-                       method=method)
+                       method=quantum_context.parameter_optimization['method'])
     # theta, alpha = _translate_from_scipy(results['x'], hypars)
     # return theta, alpha, results['fun']
-    quantum_context.kick_back_parameters_from_scipy_params(results['x'])
-    return results['fun']
+    optimized_params = results['x']
+    optimized_objective_function_value = results['fun']
+    quantum_context.kick_back_parameters_from_scipy_params(optimized_params)
+    return optimized_objective_function_value
     # return quantum_context.parameters['theta'], quantum_context.parameters['alpha'], results['fun']
 
 
@@ -243,7 +245,6 @@ def _scipy_minimizing(
     # theta, alpha = _translate_from_scipy(params, hypars)
     quantum_context.kick_back_parameters_from_scipy_params(params)
     return -Av_chi_square(quantum_context, train_data, reprs)
-
 
 
 def _chi_square(

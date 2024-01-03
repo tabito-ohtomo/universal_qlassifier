@@ -4,7 +4,7 @@ from typing import Dict, Any, List, Tuple
 
 import numpy as np
 
-from domain.learning import LabeledDataSet
+from domain.learning import LabeledDataSet, Label
 from domain.quantum import StateVectorData
 from quantum_impl.circuitery import circuit
 from save_data import create_folder, name_folder
@@ -14,20 +14,39 @@ class OPTIMIZATION_QUANUM_IMPL(Enum):
     SALINAS_2020 = 1
     QISKIT = 2
 
+class PROBLEM(Enum):
+    IRIS = 1
 
 @dataclass
 class QuantumContext:
     optimization_quantum_impl = OPTIMIZATION_QUANUM_IMPL.SALINAS_2020
+    problem = PROBLEM.IRIS
     training_data: LabeledDataSet
     test_data: LabeledDataSet
     parameters: Dict[str, np.ndarray]
     hyper_parameters: Dict[str, float]
     parameters_impl_specific: Dict[str, Any]
     parameter_optimization: Dict[str, Any]
+    ideal_vector: Dict[Label, StateVectorData]
     #
     # def create_circuit(self, theta, alpha, x):
     #     if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.SALINAS_2020:
     #         raise NotImplementedError()
+
+    def initialize_parameters(self, qubits: int, layers: int):
+        if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
+            pass
+        elif self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.SALINAS_2020:
+            self.hyper_parameters['qubits'] = qubits
+            self.hyper_parameters['layers'] = layers
+            if self.problem == PROBLEM.IRIS:
+                self.parameters['theta'] = np.random.rand(qubits, layers, 6)
+                self.parameters['alpha'] = np.random.rand(qubits, layers, 4)
+                self.hyper_parameters['dim'] = 4
+                self.ideal_vector[0] = np.array([1, 0])
+                self.ideal_vector[1] = np.array([1 / 2, np.sqrt(3) / 2])
+                self.ideal_vector[2] = np.array([1 / 2, -np.sqrt(3) / 2])
+
 
     def translate_parameters_to_scipy(self) -> np.ndarray[float]:
         if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
