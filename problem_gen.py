@@ -14,7 +14,7 @@
 import numpy as np
 
 
-def problem_generator(problem, qubits, layers, chi, qubits_lab=1):
+def problem_generator(problem, qubits, layers, qubits_lab=1):
     """
     This function generates everything needed for solving the problem
     INPUT: 
@@ -31,49 +31,49 @@ def problem_generator(problem, qubits, layers, chi, qubits_lab=1):
         -weight: set of parameters needed fot the circuit only if chi == 'weighted_fidelity_chi'. It is an array with shape (classes, qubits)
         -reprs: variable encoding the label states of the different classes
     """
-    chi = chi.lower()
-    if chi in ['fidelity', 'weighted_fidelity']: chi += '_chi'
-    if chi not in ['fidelity_chi', 'weighted_fidelity_chi']:
-        raise ValueError('Figure of merit is not valid')
-
-    if chi == 'weighted_fidelity_chi' and qubits_lab != 1:
-        qubits_lab = 1
-        print('WARNING: number of qubits for the label states has been changed to 1')
+    # chi = chi.lower()
+    # if chi in ['fidelity', 'weighted_fidelity']: chi += '_chi'
+    # if chi not in ['fidelity_chi', 'weighted_fidelity_chi']:
+    #     raise ValueError('Figure of merit is not valid')
+    # #
+    # if chi == 'weighted_fidelity_chi' and qubits_lab != 1:
+    #     qubits_lab = 1
+    #     print('WARNING: number of qubits for the label states has been changed to 1')
 
     problem = problem.lower()
     if problem == 'iris':
-        theta, alpha, reprs = _iris(qubits, layers, qubits_lab, chi)
-    elif problem == 'circle':
-        theta, alpha, reprs = _circle(qubits, layers, qubits_lab, chi)
-    elif problem == '3 circles':
-        theta, alpha, reprs = _3_circles(qubits, layers, qubits_lab, chi)
-    elif problem == 'wavy lines':
-        theta, alpha, reprs = _wavy_lines(qubits, layers, qubits_lab, chi)
-    elif problem == 'squares':
-        theta, alpha, reprs = _squares(qubits, layers, qubits_lab, chi)
-    elif problem == 'sphere':
-        theta, alpha, reprs = _sphere(qubits, layers, qubits_lab, chi)
-    elif problem == 'non convex':
-        theta, alpha, reprs = _non_convex(qubits, layers, qubits_lab, chi)
-    elif problem == 'crown':
-        theta, alpha, reprs = _crown(qubits, layers, qubits_lab, chi)
-    elif problem == 'tricrown':
-        theta, alpha, reprs = _tricrown(qubits, layers, qubits_lab, chi)
-    elif problem == 'hypersphere':
-        theta, alpha, reprs = _hypersphere(qubits, layers, qubits_lab, chi)
+        theta, alpha, reprs = _iris(qubits, layers, qubits_lab)
+    # elif problem == 'circle':
+    #     theta, alpha, reprs = _circle(qubits, layers, qubits_lab, chi)
+    # elif problem == '3 circles':
+    #     theta, alpha, reprs = _3_circles(qubits, layers, qubits_lab, chi)
+    # elif problem == 'wavy lines':
+    #     theta, alpha, reprs = _wavy_lines(qubits, layers, qubits_lab, chi)
+    # elif problem == 'squares':
+    #     theta, alpha, reprs = _squares(qubits, layers, qubits_lab, chi)
+    # elif problem == 'sphere':
+    #     theta, alpha, reprs = _sphere(qubits, layers, qubits_lab, chi)
+    # elif problem == 'non convex':
+    #     theta, alpha, reprs = _non_convex(qubits, layers, qubits_lab, chi)
+    # elif problem == 'crown':
+    #     theta, alpha, reprs = _crown(qubits, layers, qubits_lab, chi)
+    # elif problem == 'tricrown':
+    #     theta, alpha, reprs = _tricrown(qubits, layers, qubits_lab, chi)
+    # elif problem == 'hypersphere':
+    #     theta, alpha, reprs = _hypersphere(qubits, layers, qubits_lab, chi)
 
     else:
         raise ValueError('Problem is not valid')
 
-    if chi == 'fidelity_chi':
-        return theta, alpha, reprs
-    elif chi == 'weighted_fidelity_chi':
-        weights = np.ones((len(reprs), qubits))
-        return theta, alpha, weights, reprs
+    # if chi == 'fidelity_chi':
+    return theta, alpha, reprs
+    # elif chi == 'weighted_fidelity_chi':
+    #     weights = np.ones((len(reprs), qubits))
+    #     return theta, alpha, weights, reprs
 
 
 # All these are auxiliary functions for problem_generator
-def _iris(qubits, layers, qubits_lab, chi):
+def _iris(qubits, layers, qubits_lab):
     classes = 3
     reprs = representatives(classes, qubits_lab)
     theta = np.random.rand(qubits, layers, 6)

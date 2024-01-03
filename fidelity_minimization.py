@@ -24,8 +24,8 @@ from quantum_optimization_context import QuantumContext
 def fidelity_minimization(
         quantum_context: QuantumContext,
         theta, alpha, train_data, reprs,
-                          entanglement, method,
-                          batch_size, eta, epochs) -> Tuple[np.ndarray, np.ndarray, float]:
+                          method) -> Tuple[np.ndarray, np.ndarray, float]:
+                          # batch_size, eta, epochs) -> Tuple[np.ndarray, np.ndarray, float]:
     """
     This function takes the parameters of a problem and computes the optimal parameters for it, using different functions. It uses the fidelity minimization
     INPUT:
@@ -53,11 +53,13 @@ def fidelity_minimization(
     # else:
     params, hypars = _translate_to_scipy(theta, alpha)
     results = minimize(_scipy_minimizing, params,
-                       args=(quantum_context, hypars, train_data, reprs),
+                       args=(quantum_context, train_data, reprs),
                        method=method)
-    theta, alpha = _translate_from_scipy(results['x'], hypars)
-
-    return theta, alpha, results['fun']
+    # theta, alpha = _translate_from_scipy(results['x'], hypars)
+    # return theta, alpha, results['fun']
+    quantum_context.kick_back_parameters_from_scipy_params(results['x'])
+    return results['fun']
+    # return quantum_context.parameters['theta'], quantum_context.parameters['alpha'], results['fun']
 
 
 def _gradient(theta, alpha, data, reprs, entanglement):
@@ -226,7 +228,7 @@ def _translate_from_scipy(params, hypars):
 def _scipy_minimizing(
         params,
         quantum_context: QuantumContext,
-        hypars, train_data, reprs):
+        train_data, reprs):
     """
     This function returns the chi^2 function for using scipy
     INPUT:

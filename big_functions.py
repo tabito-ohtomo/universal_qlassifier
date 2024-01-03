@@ -13,22 +13,17 @@
 # This file is a file taking many different functions from other files and mixing them all together
 # so that the usage is automatized
 
-import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.cm import get_cmap
-from matplotlib.colors import Normalize
 
 from data.data_gen import data_generator
 from fidelity_minimization import fidelity_minimization
-from problem_gen import problem_generator, representatives
-from quantum_impl.circuitery import circuit
+from problem_gen import problem_generator
 from quantum_optimization_context import QuantumContext
-from save_data import write_epochs_file, write_epoch, close_epochs_file, create_folder, write_epochs_error_rate
-from save_data import write_summary, read_summary, name_folder, samples_paint, laea_x, laea_y
-from test_data import Accuracy_test, tester
+from save_data import write_summary
+from test_data import tester
 
 
-def minimizer(chi, problem, qubits, entanglement, layers, method, name,
+def minimizer(problem, qubits, entanglement, layers, method, name,
               seed=30, epochs=3000, batch_size=20, eta=0.1):
     """
     This function creates data and minimizes whichever problem (from the selected ones) 
@@ -55,33 +50,39 @@ def minimizer(chi, problem, qubits, entanglement, layers, method, name,
     np.random.seed(seed)
     (train_data, test_data), _ = data_generator(problem)
 
-    if chi == 'fidelity_chi':
-        qubits_lab = qubits
+    # if chi == 'fidelity_chi':
+    qubits_lab = qubits
 
-        theta, alpha, reprs = problem_generator(problem, qubits, layers, chi,
-                                                qubits_lab=qubits_lab)
+    theta, alpha, reprs = problem_generator(problem, qubits, layers,
+                                            qubits_lab=qubits_lab)
 
-        quantum_context = QuantumContext(
-            training_data=train_data,
-            test_data=test_data,
-            parameters={'theta': theta,
-                        'alpha': alpha},
-            hyper_parameters={'qubits': theta.shape[0],
-                              'layers': theta.shape[1],
-                              'dim': alpha.shape[-1]},
-            parameters_impl_specific={'entanglement': entanglement}
-        )
+    quantum_context = QuantumContext(
+        training_data=train_data,
+        test_data=test_data,
+        parameters={'theta': theta,
+                    'alpha': alpha},
+        hyper_parameters={'qubits': theta.shape[0],
+                          'layers': theta.shape[1],
+                          'dim': alpha.shape[-1]},
+        parameters_impl_specific={'entanglement': entanglement},
+        parameter_optimization={'chi': 'fidelity_chi',
+                                'problem':problem,
+                                'method': method}
+    )
 
-        theta, alpha, f = fidelity_minimization(quantum_context, theta, alpha, train_data, reprs,
-                                                entanglement, method,
-                                                batch_size, eta, epochs)
-        print('==================================== train ====================================')
-        acc_train = tester(quantum_context, theta, alpha, train_data, reprs, entanglement, chi)
-        print('==================================== test ====================================')
-        acc_test = tester(quantum_context, theta, alpha, test_data, reprs, entanglement, chi)
+    # theta, alpha, f = fidelity_minimization(quantum_context, theta, alpha, train_data, reprs,
+    f = fidelity_minimization(quantum_context, theta, alpha, train_data, reprs,
+                                            method)
+                                            # batch_size, eta, epochs)
+    print('==================================== train ====================================')
+    acc_train = tester(quantum_context, train_data, reprs)
+    print('==================================== test ====================================')
+    acc_test = tester(quantum_context, test_data, reprs)
 
-        write_summary(chi, problem, qubits, entanglement, layers, method, name,
-                      theta, alpha, 0, f, acc_train, acc_test, seed, epochs=epochs)
+    quantum_context.write_summary(acc_train, acc_test, f, seed, epochs)
+
+        # write_summary(chi, problem, qubits, entanglement, layers, method, name,
+        #               theta, alpha, 0, f, acc_train, acc_test, seed, epochs=epochs)
     # elif chi == 'weighted_fidelity_chi':
     #     qubits_lab = 1
     #     theta, alpha, weight, reprs = problem_generator(problem, qubits, layers, chi,

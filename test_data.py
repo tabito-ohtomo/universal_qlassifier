@@ -23,7 +23,7 @@ from weighted_fidelity_minimization import mat_fidelities, w_fidelities
 
 def _claim(
         quantum_context: QuantumContext,
-        theta, alpha, weight, x, reprs, entanglement, chi):
+        x, reprs):
     """
     This function takes the parameters of a solved problem and one data computes classification of this point
     INPUT: 
@@ -37,13 +37,13 @@ def _claim(
     OUTPUT:
         -y_: the class of x, according to the classifier
     """
-    chi = chi.lower().replace(' ', '_')
-    if chi in ['fidelity', 'weighted_fidelity']: chi += '_chi'
-    if chi not in ['fidelity_chi', 'weighted_fidelity_chi']:
-        raise ValueError('Figure of merit is not valid')
-
-    if chi == 'fidelity_chi':
-        y_ = _claim_fidelity(quantum_context, x, reprs)
+    # chi = chi.lower().replace(' ', '_')
+    # if chi in ['fidelity', 'weighted_fidelity']: chi += '_chi'
+    # if chi not in ['fidelity_chi', 'weighted_fidelity_chi']:
+    #     raise ValueError('Figure of merit is not valid')
+    #
+    # if chi == 'fidelity_chi':
+    y_ = _claim_fidelity(quantum_context, x, reprs)
 
     # if chi == 'weighted_fidelity_chi':
     #     y_ = _claim_weighted_fidelity(quantum_context, theta, alpha, weight, x, reprs, entanglement)
@@ -93,7 +93,7 @@ def _claim_weighted_fidelity(theta, alpha, weight, x, reprs, entanglement):
 
 def tester(
         quantum_context: QuantumContext,
-        theta, alpha, test_data: LabeledDataSet, reprs, entanglement, chi, weights=None):
+        test_data: LabeledDataSet, reprs):
     """
     This function takes the parameters of a solved problem and one data computes how many points are correct
     INPUT: 
@@ -115,7 +115,7 @@ def tester(
     acc = 0
     for d in test_data:
         x, y = d
-        y_ = _claim(quantum_context, theta, alpha, weights, x, reprs, entanglement, chi)
+        y_ = _claim(quantum_context, x, reprs)
         total_map[y] = total_map[y] + 1
         if y == y_:
             acc += 1
@@ -149,7 +149,7 @@ def Accuracy_test(theta, alpha, test_data, reprs, entanglement, chi, weights=Non
     solutions = np.zeros((len(test_data), dim + 3))  # data  #Esto se podrá mejorar en el futuro
     for i, d in enumerate(test_data):
         x, y = d
-        y_ = _claim(theta, alpha, weights, x, reprs, entanglement, chi)
+        y_ = _claim(theta, x, reprs)
         solutions[i, :dim] = x
         solutions[i, -3] = y
         solutions[i, -2] = y_
