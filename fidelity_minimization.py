@@ -5,11 +5,11 @@
 # Code-checks by ACL
 # June 3rd 2019
 import random
-from typing import Tuple
 
 import numpy as np
 from scipy.optimize import minimize
 
+from domain.learning import LabeledDataSet, LabeledData
 from quantum_circuit import create_circuit_and_project_to_ideal_vector
 from quantum_optimization_context import QuantumContext
 
@@ -23,7 +23,7 @@ from quantum_optimization_context import QuantumContext
 
 def fidelity_minimization(
         quantum_context: QuantumContext,
-        train_data, reprs) -> float:
+        train_data: LabeledDataSet) -> float:
     # batch_size, eta, epochs) -> Tuple[np.ndarray, np.ndarray, float]:
     """
     This function takes the parameters of a problem and computes the optimal parameters for it, using different functions. It uses the fidelity minimization
@@ -43,25 +43,14 @@ def fidelity_minimization(
         -chi: value of the minimization function
     """
 
-    # if method == 'SGD':
-    #     thetas, alphas, chis = _sgd(theta, alpha, train_data, reprs,
-    #                                 entanglement, eta, batch_size, epochs)
-    #     i = chis.index(max(chis))
-    #     return thetas[i], alphas[i], chis[i]
-    #
-    # else:
-    # params, hypars = _translate_to_scipy(theta, alpha)
     params = quantum_context.translate_parameters_to_scipy()
-    results = minimize(_scipy_minimizing, params,
-                       args=(quantum_context, train_data, reprs),
+    results = minimize(_objective_function_in_scipy, params,
+                       args=(quantum_context, train_data),
                        method=quantum_context.parameter_optimization['method'])
-    # theta, alpha = _translate_from_scipy(results['x'], hypars)
-    # return theta, alpha, results['fun']
     optimized_params = results['x']
     optimized_objective_function_value = results['fun']
     quantum_context.kick_back_parameters_from_scipy_params(optimized_params)
     return optimized_objective_function_value
-    # return quantum_context.parameters['theta'], quantum_context.parameters['alpha'], results['fun']
 
 
 def _gradient(theta, alpha, data, reprs, entanglement):
@@ -163,7 +152,7 @@ def _session_sgd(
         theta += eta * gradient_theta_batch  # This sign is very important, it is the difference between maximizing or minimizing.
         alpha += eta * gradient_alpha_batch
 
-    return theta, alpha, Av_chi_square(quantum_context, train_data, reprs)
+    return theta, alpha, av_chi_square(quantum_context, train_data, reprs)
 
 
 def _sgd(theta, alpha, train_data, reprs, entanglement, eta, batch_size, epochs):
@@ -227,10 +216,10 @@ def _translate_from_scipy(params, hypars):
     return theta, alpha
 
 
-def _scipy_minimizing(
+def _objective_function_in_scipy(
         params,
         quantum_context: QuantumContext,
-        train_data, reprs):
+        train_data: LabeledDataSet):
     """
     This function returns the chi^2 function for using scipy
     INPUT:
@@ -244,12 +233,12 @@ def _scipy_minimizing(
     """
     # theta, alpha = _translate_from_scipy(params, hypars)
     quantum_context.kick_back_parameters_from_scipy_params(params)
-    return -Av_chi_square(quantum_context, train_data, reprs)
+    return -av_chi_square(quantum_context, train_data)
 
 
 def _chi_square(
         quantum_context: QuantumContext,
-        data, reprs):  # Chi for one point
+        data: LabeledData):  # Chi for one point
     """
     This function compute chi^2 for only one point
     INPUT: 
@@ -265,13 +254,13 @@ def _chi_square(
     x, y = data
     # theta_aux = code_coords(theta, alpha, x)
     # ans = calculate_fidelity(quantum_context, x, reprs[y])
-    ans = quantum_context.calculate_fidelity(x, reprs[y])
+    ans = quantum_context.calculate_fidelity(x, y)
     return ans
 
 
-def Av_chi_square(
+def av_chi_square(
         quantum_context: QuantumContext,
-        train_data, reprs):  # Chi in average
+        train_data: LabeledDataSet):  # Chi in average
     """
     This function compute chi^2 for only one point
     INPUT: 
@@ -283,30 +272,7 @@ def Av_chi_square(
     OUTPUT: 
         -Averaged chi^2 for data
     """
-    Av_Chi = 0
-    mean_0 = np.mean(list(map(lambda d: d[0][0], train_data)))
-    mean_1 = np.mean(list(map(lambda d: d[0][1], train_data)))
-    mean_2 = np.mean(list(map(lambda d: d[0][2], train_data)))
-    mean_3 = np.mean(list(map(lambda d: d[0][3], train_data)))
-
-    sigma_0 = np.std(list(map(lambda d: d[0][0], train_data)))
-    sigma_1 = np.std(list(map(lambda d: d[0][1], train_data)))
-    sigma_2 = np.std(list(map(lambda d: d[0][2], train_data)))
-    sigma_3 = np.std(list(map(lambda d: d[0][3], train_data)))
-
-    print(mean_0)
-    print(mean_1)
-    print(mean_2)
-    print(mean_3)
-    print(sigma_0)
-    print(sigma_1)
-    print(sigma_2)
-    print(sigma_3)
-
-    for d in train_data:
-        Av_Chi += _chi_square(quantum_context, d, reprs)
-
-    return Av_Chi / len(train_data)
+    return np.average(list(map(lambda d: _chi_square(quantum_context, d), train_data)))
 
 
 def code_coords(theta, alpha, x):  # Encoding of coordinates

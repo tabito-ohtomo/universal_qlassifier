@@ -2,11 +2,13 @@ from typing import TypeAlias, List, Tuple, Any
 
 import numpy as np
 
-Data: TypeAlias = List[Tuple[np.ndarray[Any] | float, int]]
+# Data: TypeAlias = List[Tuple[np.ndarray[Any] | float, int]]
+Data: TypeAlias = List[float | int]
 
 Label: TypeAlias = int
 
-LabeledDataSet: TypeAlias = List[Tuple[Data, Label]]
+LabeledData : TypeAlias = Tuple[Data, Label]
+LabeledDataSet: TypeAlias = List[LabeledData]
 
 LabeledDataSetToLearn: TypeAlias = Tuple[LabeledDataSet, LabeledDataSet]
 

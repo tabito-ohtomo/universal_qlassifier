@@ -4,7 +4,7 @@ from typing import Dict, Any, List, Tuple
 
 import numpy as np
 
-from domain.learning import LabeledDataSet, Label
+from domain.learning import LabeledDataSet, Label, Data
 from domain.quantum import StateVectorData
 from quantum_impl.circuitery import circuit
 from save_data import create_folder, name_folder
@@ -43,9 +43,9 @@ class QuantumContext:
                 self.parameters['theta'] = np.random.rand(qubits, layers, 6)
                 self.parameters['alpha'] = np.random.rand(qubits, layers, 4)
                 self.hyper_parameters['dim'] = 4
-                self.ideal_vector[0] = np.array([1, 0])
-                self.ideal_vector[1] = np.array([1 / 2, np.sqrt(3) / 2])
-                self.ideal_vector[2] = np.array([1 / 2, -np.sqrt(3) / 2])
+                self.ideal_vector[0] = np.array([1, 0, 0, 0])
+                self.ideal_vector[1] = np.array([0, 1, 0, 0])
+                self.ideal_vector[2] = np.array([0, 0, 1, 0])
 
 
     def translate_parameters_to_scipy(self) -> np.ndarray[float]:
@@ -70,15 +70,25 @@ class QuantumContext:
                 self.parameters['theta'] = scipy_params[:qubits * layers * 6].reshape(qubits, layers, 6)
                 self.parameters['alpha'] = scipy_params[qubits * layers * 6: qubits * layers * 6 + qubits * layers * dim].reshape(qubits, layers, dim)
 
-
     def translate_hyper_parameters_to_scipy(self) -> Tuple[float, float, float]:  # -> Tuple[int]
         if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
             pass
         elif self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.SALINAS_2020:
             return self.hyper_parameters['qubits'], self.hyper_parameters['layers'], self.hyper_parameters['dim']
 
+    def get_most_matched_label(self, x: Data) -> Label:
+        return max(self.ideal_vector.keys(), key=lambda label: self.calculate_fidelity(x, label))
+
+    def calculate_fidelity(
+            self, x: Data,
+            label: Label
+            # ideal_vector: StateVectorData
+    ) -> float:
+        # theta_aux = code_coords(theta, alpha, x)
+        return np.abs(self.create_circuit_and_project_to_ideal_vector(x, self.ideal_vector[label]))
+
     def create_circuit_and_project_to_ideal_vector(
-            self, x,
+            self, x: Data,
             ideal_vector: StateVectorData
     ) -> float:
         if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
@@ -91,6 +101,8 @@ class QuantumContext:
             entanglement = self.parameters_impl_specific['entanglement']
             theta_aux = code_coords(theta, alpha, x)
             c = circuit(theta_aux, entanglement)
+            # print(ideal_vector)
+            # print(c.psi)
             return inner_product(ideal_vector, c.psi)
 
     def write_summary(self, acc_train, acc_test, chi_value, seed=30, epochs=3000):
@@ -129,23 +141,8 @@ class QuantumContext:
             file_text.close()
 
 
-    def calculate_fidelity(
-            self, x,
-            # theta_aux: np.ndarray,
-            ideal_vector: StateVectorData
-    ) -> float:
-        # theta_aux = code_coords(theta, alpha, x)
-        return np.abs(self.create_circuit_and_project_to_ideal_vector(x, ideal_vector))
-
-    def calculate_averaged_chi_square(self, train_data, repr) -> float:
-        chi_square = 0.0
-        for x, y in train_data:
-            chi_square += (y - self.calculate_fidelity(x, repr)) ** 2
-        return chi_square / len(train_data)
-
-
 def code_coords(theta: np.ndarray[np.ndarray[np.ndarray[int]]], alpha: np.ndarray[np.ndarray[np.ndarray[int]]],
-                x: List[List[float]])\
+                x: List[float])\
         -> np.ndarray[np.ndarray[np.ndarray[int]]]:  # Encoding of coordinates
     """
     This functions converts theta, alpha and x in a new set of variables encoding the three of them properly

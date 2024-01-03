@@ -93,7 +93,7 @@ def _claim_weighted_fidelity(theta, alpha, weight, x, reprs, entanglement):
 
 def tester(
         quantum_context: QuantumContext,
-        test_data: LabeledDataSet, reprs):
+        test_data: LabeledDataSet):
     """
     This function takes the parameters of a solved problem and one data computes how many points are correct
     INPUT: 
@@ -115,7 +115,7 @@ def tester(
     acc = 0
     for d in test_data:
         x, y = d
-        y_ = _claim(quantum_context, x, reprs)
+        y_ = quantum_context.get_most_matched_label(x)
         total_map[y] = total_map[y] + 1
         if y == y_:
             acc += 1

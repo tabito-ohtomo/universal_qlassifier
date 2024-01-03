@@ -17,7 +17,6 @@ import numpy as np
 
 from data.data_gen import data_generator
 from fidelity_minimization import fidelity_minimization
-from problem_gen import problem_generator
 from quantum_optimization_context import QuantumContext
 from test_data import tester
 
@@ -49,12 +48,6 @@ def minimizer(problem, qubits, entanglement, layers, method, name,
     np.random.seed(seed)
     (train_data, test_data), _ = data_generator(problem)
 
-    # if chi == 'fidelity_chi':
-    qubits_lab = qubits
-
-    _, _, reprs = problem_generator(problem, qubits, layers,
-                                    qubits_lab=qubits_lab)
-
     quantum_context = QuantumContext(
         training_data=train_data,
         test_data=test_data,
@@ -69,12 +62,12 @@ def minimizer(problem, qubits, entanglement, layers, method, name,
     quantum_context.initialize_parameters(qubits, layers)
 
     # theta, alpha, f = fidelity_minimization(quantum_context, theta, alpha, train_data, reprs,
-    f = fidelity_minimization(quantum_context, train_data, reprs)
+    f = fidelity_minimization(quantum_context, train_data)
     # batch_size, eta, epochs)
     print('==================================== train ====================================')
-    acc_train = tester(quantum_context, train_data, reprs)
+    acc_train = tester(quantum_context, train_data)
     print('==================================== test ====================================')
-    acc_test = tester(quantum_context, test_data, reprs)
+    acc_test = tester(quantum_context, test_data)
 
     quantum_context.write_summary(acc_train, acc_test, f, seed, epochs)
 
