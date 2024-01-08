@@ -1,9 +1,13 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, Any, List, Tuple
 
 import numpy as np
+import qiskit.quantum_info as qi
+from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
 
+from data.data_gen import PROBLEM
 from domain.learning import LabeledDataSet, Label, Data
 from domain.quantum import StateVectorData
 from quantum_impl.circuitery import circuit
@@ -13,14 +17,13 @@ from save_data import create_folder, name_folder
 class OPTIMIZATION_QUANUM_IMPL(Enum):
     SALINAS_2020 = 1
     QISKIT = 2
+    CAPPELETTI_2020 = 3
 
-class PROBLEM(Enum):
-    IRIS = 1
 
 @dataclass
 class QuantumContext:
-    optimization_quantum_impl = OPTIMIZATION_QUANUM_IMPL.SALINAS_2020
-    problem = PROBLEM.IRIS
+    optimization_quantum_impl: OPTIMIZATION_QUANUM_IMPL
+    problem: PROBLEM.IRIS
     training_data: LabeledDataSet
     test_data: LabeledDataSet
     parameters: Dict[str, np.ndarray]
@@ -28,10 +31,6 @@ class QuantumContext:
     parameters_impl_specific: Dict[str, Any]
     parameter_optimization: Dict[str, Any]
     ideal_vector: Dict[Label, StateVectorData]
-    #
-    # def create_circuit(self, theta, alpha, x):
-    #     if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.SALINAS_2020:
-    #         raise NotImplementedError()
 
     def initialize_parameters(self, qubits: int, layers: int):
         if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
@@ -46,7 +45,12 @@ class QuantumContext:
                 self.ideal_vector[0] = np.array([1, 0, 0, 0])
                 self.ideal_vector[1] = np.array([0, 1, 0, 0])
                 self.ideal_vector[2] = np.array([0, 0, 1, 0])
-
+        elif self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.CAPPELETTI_2020:
+            self.parameters['theta'] = np.random.randn(8)
+            if self.problem == PROBLEM.IRIS:
+                self.ideal_vector[0] = np.array([1, 0, 0, 0])
+                self.ideal_vector[1] = np.array([0, 1, 0, 0])
+                self.ideal_vector[2] = np.array([0, 0, 1, 0])
 
     def translate_parameters_to_scipy(self) -> np.ndarray[float]:
         if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
@@ -55,6 +59,8 @@ class QuantumContext:
             return np.concatenate((
                 self.parameters['theta'].flatten(),
                 self.parameters['alpha'].flatten()))
+        elif self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.CAPPELETTI_2020:
+            return self.parameters['theta']
 
     def kick_back_parameters_from_scipy_params(self, scipy_params):
         if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
@@ -65,18 +71,18 @@ class QuantumContext:
             dim = self.hyper_parameters['dim']
             if dim <= 3:
                 self.parameters['theta'] = scipy_params[:qubits * layers * 3].reshape(qubits, layers, 3)
-                self.parameters['alpha'] = scipy_params[qubits * layers * 3: qubits * layers * 3 + qubits * layers * dim].reshape(qubits, layers, dim)
-            else: # dim == 4
+                self.parameters['alpha'] = scipy_params[
+                                           qubits * layers * 3: qubits * layers * 3 + qubits * layers * dim].reshape(
+                    qubits, layers, dim)
+            else:  # dim == 4
                 self.parameters['theta'] = scipy_params[:qubits * layers * 6].reshape(qubits, layers, 6)
-                self.parameters['alpha'] = scipy_params[qubits * layers * 6: qubits * layers * 6 + qubits * layers * dim].reshape(qubits, layers, dim)
+                self.parameters['alpha'] = (
+                    scipy_params[qubits * layers * 6: qubits * layers * 6 + qubits * layers * dim].reshape(
+                        qubits, layers, dim))
+        elif self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.CAPPELETTI_2020:
+            self.parameters['theta'] = scipy_params
 
-    def translate_hyper_parameters_to_scipy(self) -> Tuple[float, float, float]:  # -> Tuple[int]
-        if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
-            pass
-        elif self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.SALINAS_2020:
-            return self.hyper_parameters['qubits'], self.hyper_parameters['layers'], self.hyper_parameters['dim']
-
-    def get_most_matched_label(self, x: Data) -> Label:
+    def predict(self, x: Data) -> Label:
         return max(self.ideal_vector.keys(), key=lambda label: self.calculate_fidelity(x, label))
 
     def calculate_fidelity(
@@ -92,7 +98,6 @@ class QuantumContext:
             ideal_vector: StateVectorData
     ) -> float:
         if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
-            entanglement = self.parameters_impl_specific['entanglement']
             pass
             # return inner_product(ideal_vector, create_circuit_by_qiskit(theta, alpha, x, entanglement))
         elif self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.SALINAS_2020:
@@ -101,9 +106,65 @@ class QuantumContext:
             entanglement = self.parameters_impl_specific['entanglement']
             theta_aux = code_coords(theta, alpha, x)
             c = circuit(theta_aux, entanglement)
-            # print(ideal_vector)
-            # print(c.psi)
             return inner_product(ideal_vector, c.psi)
+        elif self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.CAPPELETTI_2020:
+            theta = self.parameters['theta']
+            registers = QuantumRegister(2, 'qr')
+            c = QuantumCircuit(registers)
+
+            c.rx(np.pi / 2, registers)
+            for omega, register in zip(x[:2], registers):
+                c.rz(omega, register)
+            c.rx(np.pi / 2, registers)
+            c.cz(0, 1)
+
+            c.rx(np.pi / 2, registers)
+            for omega, register in zip(theta[:2], registers):
+                c.rz(omega, register)
+            c.rx(np.pi / 2, registers)
+            c.cz(0, 1)
+
+            c.rx(np.pi / 2, registers)
+            for omega, register in zip(x[2:4], registers):
+                c.rz(omega, register)
+            c.rx(np.pi / 2, registers)
+            c.cz(0, 1)
+
+            c.rx(np.pi / 2, registers)
+            for omega, register in zip(theta[2:4], registers):
+                c.rz(omega, register)
+            c.rx(np.pi / 2, registers)
+            c.cz(0, 1)
+
+            c.rx(np.pi / 2, registers)
+            for omega, register in zip(x[:2], registers):
+                c.rz(omega, register)
+            c.rx(np.pi / 2, registers)
+            c.cz(0, 1)
+
+            c.rx(np.pi / 2, registers)
+            for omega, register in zip(theta[4:6], registers):
+                c.rz(omega, register)
+            c.rx(np.pi / 2, registers)
+            c.cz(0, 1)
+
+            c.rx(np.pi / 2, registers)
+            for omega, register in zip(x[2:4], registers):
+                c.rz(omega, register)
+            c.rx(np.pi / 2, registers)
+            c.cz(0, 1)
+
+            c.rx(np.pi / 2, registers)
+            for omega, register in zip(theta[6:8], registers):
+                c.rz(omega, register)
+            c.rx(np.pi / 2, registers)
+            c.cz(0, 1)
+
+            state_vector = qi.Statevector.from_instruction(c)
+
+            # print(ideal_vector)
+            # print(state_vector)
+            return inner_product(ideal_vector, state_vector.data)
 
     def write_summary(self, acc_train, acc_test, chi_value, seed=30, epochs=3000):
         if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
@@ -139,10 +200,46 @@ class QuantumContext:
             file_text.write('\nacc_train = ' + str(acc_train))
             file_text.write('\nacc_test = ' + str(acc_test))
             file_text.close()
+        elif self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.CAPPELETTI_2020:
+            # foldname = name_folder(self.parameter_optimization['chi'],
+            #                        self.parameter_optimization['problem'],
+            #                        self.hyper_parameters['qubits'],
+            #                        self.parameters_impl_specific['entanglement'],
+            #                        self.hyper_parameters['layers'],
+            #                        self.parameter_optimization['method'])
+            foldname = str(self.parameter_optimization['chi']) + \
+                       str(self.parameter_optimization['problem']) + \
+                       str(self.parameter_optimization['method'])
+            create_folder(foldname)
+            file_text = open(foldname + '/' + 'run' + '_summary.txt', 'w')
+            file_text.write('\nCAPPELETTI_2020')
+            file_text.write('\nFigur of merit = ' + self.parameter_optimization['chi'])
+            file_text.write('\nProblem = ' + self.parameter_optimization['problem'])
+            # file_text.write('\nNumber of qubits = ' + str(self.hyper_parameters['qubits']))
+            # if self.hyper_parameters['qubits'] != 1:
+            #     file_text.write('\nEntanglement = ' + self.parameters_impl_specific['entanglement'])
+            # file_text.write('\nNumber of layers = ' + str(self.hyper_parameters['layers']))
+            file_text.write('\nMinimization method = ' + self.parameter_optimization['method'])
+            file_text.write('\nRandom seed = ' + str(seed))
+            if self.parameter_optimization['method'] == 'SGD':
+                file_text.write('\nNumber of epochs = ' + str(epochs))
+            file_text.write('\n\nBEST RESULT\n\n')
+            file_text.write('\nTHETA = \n')
+            file_text.write(str(self.parameters['theta']))
+            # file_text.write('\nALPHA = \n')
+            # file_text.write(str(self.parameters['alpha']))
+
+            # if chi == 'weighted_fidelity_chi':
+            #     file_text.write('\nWEIGHTS = \n')
+            #     file_text.write(str(weights))
+            file_text.write('\nchi**2 = ' + str(chi_value))
+            file_text.write('\nacc_train = ' + str(acc_train))
+            file_text.write('\nacc_test = ' + str(acc_test))
+            file_text.close()
 
 
 def code_coords(theta: np.ndarray[np.ndarray[np.ndarray[int]]], alpha: np.ndarray[np.ndarray[np.ndarray[int]]],
-                x: List[float])\
+                x: List[float]) \
         -> np.ndarray[np.ndarray[np.ndarray[int]]]:  # Encoding of coordinates
     """
     This functions converts theta, alpha and x in a new set of variables encoding the three of them properly
@@ -168,9 +265,56 @@ def code_coords(theta: np.ndarray[np.ndarray[np.ndarray[int]]], alpha: np.ndarra
                 theta_aux[q, l, 3] += alpha[q, l, 3] * x[3]
             else:
                 raise ValueError('Data has too many dimensions')
-
     return theta_aux
+
+
+def create_quantum_context(
+        optimization_quantum_impl: OPTIMIZATION_QUANUM_IMPL,
+        problem: PROBLEM,
+        raw_training_data: LabeledDataSet,
+        raw_test_data: LabeledDataSet,
+        parameters: Dict[str, np.ndarray],
+        hyper_parameters: Dict[str, float],
+        parameters_impl_specific: Dict[str, Any],
+        parameter_optimization: Dict[str, Any],
+        ideal_vector: Dict[Label, StateVectorData],
+) -> QuantumContext:
+    training_data = raw_training_data
+    test_data = raw_test_data
+    if optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.CAPPELETTI_2020:
+        raw_train_data = list(map(lambda labeled_data: labeled_data[0], raw_training_data))
+        mean = np.mean(raw_train_data, axis=0)
+        std = np.std(raw_train_data, axis=0)
+        training_data = transform_zipped_data(lambda x: (x - mean) / std / 3 * 0.95 * np.pi, raw_training_data, index=0)
+        test_data = transform_zipped_data(lambda x: (x - mean) / std / 3 * 0.95 * np.pi, raw_training_data, index=0)
+    else:
+        training_data = raw_training_data
+        test_data = raw_test_data
+
+    return QuantumContext(
+        optimization_quantum_impl=optimization_quantum_impl,
+        problem=problem,
+        training_data=training_data,
+        test_data=test_data,
+        parameters=parameters,
+        hyper_parameters=hyper_parameters,
+        parameters_impl_specific=parameters_impl_specific,
+        parameter_optimization=parameter_optimization,
+        ideal_vector=ideal_vector)
 
 
 def inner_product(vector1: StateVectorData, vector2: StateVectorData) -> float:
     return np.dot(np.conj(vector1), vector2)
+
+
+def transform_zipped_data(func: Callable[[Any], Any], zipped_list: List[Tuple[Any, Any]], index: int) \
+        -> List[Tuple[Any, Any]]:
+    list_0 = map(lambda x: x[0], zipped_list)
+    list_1 = map(lambda x: x[1], zipped_list)
+
+    if index == 0:
+        return list(zip(list(map(func, list_0)), list_1))
+    elif index == 1:
+        return list(zip(list_0, list(map(func, list_1))))
+    if index != 0 or index != 1:
+        raise Exception('oops!:' + str(index))

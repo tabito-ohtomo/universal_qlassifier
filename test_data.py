@@ -91,9 +91,7 @@ def _claim_weighted_fidelity(theta, alpha, weight, x, reprs, entanglement):
     return np.argmax(w_fid)
 
 
-def tester(
-        quantum_context: QuantumContext,
-        test_data: LabeledDataSet):
+def tester(quantum_context: QuantumContext):
     """
     This function takes the parameters of a solved problem and one data computes how many points are correct
     INPUT: 
@@ -109,25 +107,25 @@ def tester(
     """
     total_map: Dict[Label, int] = {}
     acc_map: Dict[Label, int] = {}
-    for label in set(map(lambda x: x[1], test_data)):
+    for label in set(map(lambda x: x[1], quantum_context.test_data)):
         total_map[label] = 0
         acc_map[label] = 0
     acc = 0
-    for d in test_data:
+    for d in quantum_context.test_data:
         x, y = d
-        y_ = quantum_context.get_most_matched_label(x)
+        y_ = quantum_context.predict(x)
         total_map[y] = total_map[y] + 1
         if y == y_:
             acc += 1
             acc_map[y] = acc_map[y] + 1
 
-    print('expected: ' + str(y))
-    print('actual: ' + str(y_))
+        print('expected: ' + str(y))
+        print('actual: ' + str(y_))
 
     print(total_map)
     print(acc_map)
 
-    return acc / len(test_data)
+    return acc / len(quantum_context.test_data)
 
 
 def Accuracy_test(theta, alpha, test_data, reprs, entanglement, chi, weights=None):

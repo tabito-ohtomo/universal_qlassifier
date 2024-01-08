@@ -21,9 +21,7 @@ from quantum_optimization_context import QuantumContext
 ###########################################################################
 
 
-def fidelity_minimization(
-        quantum_context: QuantumContext,
-        train_data: LabeledDataSet) -> float:
+def fidelity_minimization(quantum_context: QuantumContext) -> float:
     # batch_size, eta, epochs) -> Tuple[np.ndarray, np.ndarray, float]:
     """
     This function takes the parameters of a problem and computes the optimal parameters for it, using different functions. It uses the fidelity minimization
@@ -45,7 +43,7 @@ def fidelity_minimization(
 
     params = quantum_context.translate_parameters_to_scipy()
     results = minimize(_objective_function_in_scipy, params,
-                       args=(quantum_context, train_data),
+                       args=quantum_context,
                        method=quantum_context.parameter_optimization['method'])
     optimized_params = results['x']
     optimized_objective_function_value = results['fun']
@@ -152,7 +150,7 @@ def _session_sgd(
         theta += eta * gradient_theta_batch  # This sign is very important, it is the difference between maximizing or minimizing.
         alpha += eta * gradient_alpha_batch
 
-    return theta, alpha, av_chi_square(quantum_context, train_data, reprs)
+    return theta, alpha, av_chi_square(quantum_context)
 
 
 def _sgd(theta, alpha, train_data, reprs, entanglement, eta, batch_size, epochs):
@@ -190,36 +188,10 @@ def _sgd(theta, alpha, train_data, reprs, entanglement, eta, batch_size, epochs)
     return thetas, alphas, chis
 
 
-def _translate_to_scipy(theta, alpha):
-    """
-    This function is a intermediate step for translating theta and alpha to a single variable for scipy.optimize.minimize
-    """
-    qubits = theta.shape[0]
-    layers = theta.shape[1]
-    dim = alpha.shape[-1]
-
-    return np.concatenate((theta.flatten(), alpha.flatten())), (qubits, layers, dim)
-
-
-def _translate_from_scipy(params, hypars):
-    """
-    This function is a intermediate step for getting theta and alpha from a single variable for scipy.optimize.minimize
-    """
-    (qubits, layers, dim) = hypars
-    if dim <= 3:
-        theta = params[:qubits * layers * 3].reshape(qubits, layers, 3)
-        alpha = params[qubits * layers * 3: qubits * layers * 3 + qubits * layers * dim].reshape(qubits, layers, dim)
-
-    if dim == 4:
-        theta = params[:qubits * layers * 6].reshape(qubits, layers, 6)
-        alpha = params[qubits * layers * 6: qubits * layers * 6 + qubits * layers * dim].reshape(qubits, layers, dim)
-    return theta, alpha
-
 
 def _objective_function_in_scipy(
         params,
-        quantum_context: QuantumContext,
-        train_data: LabeledDataSet):
+        quantum_context: QuantumContext):
     """
     This function returns the chi^2 function for using scipy
     INPUT:
@@ -233,7 +205,7 @@ def _objective_function_in_scipy(
     """
     # theta, alpha = _translate_from_scipy(params, hypars)
     quantum_context.kick_back_parameters_from_scipy_params(params)
-    return -av_chi_square(quantum_context, train_data)
+    return -av_chi_square(quantum_context)
 
 
 def _chi_square(
@@ -258,9 +230,7 @@ def _chi_square(
     return ans
 
 
-def av_chi_square(
-        quantum_context: QuantumContext,
-        train_data: LabeledDataSet):  # Chi in average
+def av_chi_square(quantum_context: QuantumContext):  # Chi in average
     """
     This function compute chi^2 for only one point
     INPUT: 
@@ -272,7 +242,7 @@ def av_chi_square(
     OUTPUT: 
         -Averaged chi^2 for data
     """
-    return np.average(list(map(lambda d: _chi_square(quantum_context, d), train_data)))
+    return np.average(list(map(lambda d: _chi_square(quantum_context, d), quantum_context.training_data)))
 
 
 def code_coords(theta, alpha, x):  # Encoding of coordinates
