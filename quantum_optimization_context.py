@@ -1,3 +1,4 @@
+import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
@@ -8,7 +9,7 @@ import qiskit.quantum_info as qi
 from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
 
 from data.data_gen import PROBLEM
-from domain.learning import LabeledDataSet, Label, Data
+from domain.learning import LabeledDataSet, Label, Data, AccuracyTable
 from domain.quantum import StateVectorData
 from quantum_impl.circuitery import circuit
 from save_data import create_folder, name_folder
@@ -31,6 +32,8 @@ class QuantumContext:
     parameters_impl_specific: Dict[str, Any]
     parameter_optimization: Dict[str, Any]
     ideal_vector: Dict[Label, StateVectorData]
+    original_to_actual_accuracy_table_train: AccuracyTable
+    original_to_actual_accuracy_table_test: AccuracyTable
 
     def initialize_parameters(self, qubits: int, layers: int):
         if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
@@ -207,8 +210,8 @@ class QuantumContext:
             #                        self.parameters_impl_specific['entanglement'],
             #                        self.hyper_parameters['layers'],
             #                        self.parameter_optimization['method'])
-            foldname = str(self.parameter_optimization['chi']) + \
-                       str(self.parameter_optimization['problem']) + \
+            foldname = str(self.parameter_optimization['chi']) + '/' + \
+                       str(self.parameter_optimization['problem']) + '/' + \
                        str(self.parameter_optimization['method'])
             create_folder(foldname)
             file_text = open(foldname + '/' + 'run' + '_summary.txt', 'w')
@@ -235,6 +238,13 @@ class QuantumContext:
             file_text.write('\nchi**2 = ' + str(chi_value))
             file_text.write('\nacc_train = ' + str(acc_train))
             file_text.write('\nacc_test = ' + str(acc_test))
+
+            file_text.write('\nacc_train_map: \n')
+            file_text.write(str(self.original_to_actual_accuracy_table_train.expected_to_actual))
+
+            file_text.write('\nacc_test_map: \n')
+            file_text.write(str(self.original_to_actual_accuracy_table_test.expected_to_actual))
+
             file_text.close()
 
 
@@ -286,7 +296,7 @@ def create_quantum_context(
         mean = np.mean(raw_train_data, axis=0)
         std = np.std(raw_train_data, axis=0)
         training_data = transform_zipped_data(lambda x: (x - mean) / std / 3 * 0.95 * np.pi, raw_training_data, index=0)
-        test_data = transform_zipped_data(lambda x: (x - mean) / std / 3 * 0.95 * np.pi, raw_training_data, index=0)
+        test_data = transform_zipped_data(lambda x: (x - mean) / std / 3 * 0.95 * np.pi, raw_test_data, index=0)
     else:
         training_data = raw_training_data
         test_data = raw_test_data
@@ -300,7 +310,9 @@ def create_quantum_context(
         hyper_parameters=hyper_parameters,
         parameters_impl_specific=parameters_impl_specific,
         parameter_optimization=parameter_optimization,
-        ideal_vector=ideal_vector)
+        ideal_vector=ideal_vector,
+        original_to_actual_accuracy_table_train=AccuracyTable(),
+        original_to_actual_accuracy_table_test=AccuracyTable())
 
 
 def inner_product(vector1: StateVectorData, vector2: StateVectorData) -> float:

@@ -15,7 +15,7 @@ from typing import Tuple, Dict
 
 import numpy as np
 
-from domain.learning import LabeledDataSet, Label
+from domain.learning import LabeledDataSet, Label, AccuracyTable
 from fidelity_minimization import code_coords
 from quantum_optimization_context import QuantumContext
 from weighted_fidelity_minimization import mat_fidelities, w_fidelities
@@ -91,7 +91,7 @@ def _claim_weighted_fidelity(theta, alpha, weight, x, reprs, entanglement):
     return np.argmax(w_fid)
 
 
-def tester(quantum_context: QuantumContext):
+def tester(quantum_context: QuantumContext, data_to_test: LabeledDataSet) -> Tuple[float, AccuracyTable]:
     """
     This function takes the parameters of a solved problem and one data computes how many points are correct
     INPUT: 
@@ -106,26 +106,19 @@ def tester(quantum_context: QuantumContext):
         -success normalized
     """
     total_map: Dict[Label, int] = {}
-    acc_map: Dict[Label, int] = {}
-    for label in set(map(lambda x: x[1], quantum_context.test_data)):
-        total_map[label] = 0
-        acc_map[label] = 0
+    # acc_map: Dict[Label, int] = {}
+    acc_map: AccuracyTable = AccuracyTable()
     acc = 0
-    for d in quantum_context.test_data:
+    for d in data_to_test:
         x, y = d
         y_ = quantum_context.predict(x)
-        total_map[y] = total_map[y] + 1
+        acc_map.add(y, y_)
         if y == y_:
             acc += 1
-            acc_map[y] = acc_map[y] + 1
 
-        print('expected: ' + str(y))
-        print('actual: ' + str(y_))
+    print(acc_map.expected_to_actual)
 
-    print(total_map)
-    print(acc_map)
-
-    return acc / len(quantum_context.test_data)
+    return acc / len(quantum_context.test_data), acc_map
 
 
 def Accuracy_test(theta, alpha, test_data, reprs, entanglement, chi, weights=None):
