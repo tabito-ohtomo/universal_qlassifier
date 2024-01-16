@@ -1,0 +1,20 @@
+
+CAPPELETTI_2020
+Figur of merit = fidelity_chi
+Problem = iris
+Minimization method = L-BFGS-B
+Random seed = 30
+
+BEST RESULT
+
+
+THETA = 
+[-1.26405268  1.52790535 -0.97071096  0.47055959 -0.10069672  0.3037932
+ -1.72596244  1.58509533]
+chi**2 = -1.0533333333333335
+acc_train = <domain.learning.AccuracyTable object at 0x7f192d11cb10>
+acc_test = 0.5
+acc_train_map: 
+{0: {0: 12, 2: 7, 1: 11}}
+acc_test_map: 
+{}

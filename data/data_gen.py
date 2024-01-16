@@ -38,7 +38,9 @@ def data_generator(problem:PROBLEM) -> Tuple[LabeledDataSetToLearn, Any]:
         data = load_iris()
         ret: LabeledDataSet = []
         for d, t in zip(data.data, data.target):
-            ret.append((d, t))
+            # if t == 0:
+            #     ret.append((d, t))
+          ret.append((d, t))
 
         train_data = []
         test_data = []

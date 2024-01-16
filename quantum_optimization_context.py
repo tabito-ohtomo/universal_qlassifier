@@ -1,4 +1,6 @@
 import json
+from qiskit_ibm_provider import IBMProvider
+from qiskit_ibm_runtime import QiskitRuntimeService, Estimator, Sampler
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
@@ -14,6 +16,14 @@ from domain.quantum import StateVectorData
 from quantum_impl.circuitery import circuit
 from save_data import create_folder, name_folder
 
+II = qi.Pauli('II')
+IZ = qi.Pauli('IZ')
+ZI = qi.Pauli('ZI')
+ZZ = qi.Pauli('ZZ')
+
+minus_IZ = qi.Pauli('-IZ')
+minus_ZI = qi.Pauli('-ZI')
+minus_ZZ = qi.Pauli('-ZZ')
 
 class OPTIMIZATION_QUANUM_IMPL(Enum):
     SALINAS_2020 = 1
@@ -28,7 +38,7 @@ class QuantumContext:
     training_data: LabeledDataSet
     test_data: LabeledDataSet
     parameters: Dict[str, np.ndarray]
-    hyper_parameters: Dict[str, float]
+    hyper_parameters: Dict[str, Any]
     parameters_impl_specific: Dict[str, Any]
     parameter_optimization: Dict[str, Any]
     ideal_vector: Dict[Label, StateVectorData]
@@ -50,10 +60,20 @@ class QuantumContext:
                 self.ideal_vector[2] = np.array([0, 0, 1, 0])
         elif self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.CAPPELETTI_2020:
             self.parameters['theta'] = np.random.randn(8)
+
+            # ====================== backends selection ======================
+            # provider = IBMProvider()
+            # print(provider.backends())
+            service = QiskitRuntimeService()
+            backend = service.get_backend("ibmq_qasm_simulator")
+            self.hyper_parameters['backend'] = backend
+            # ================================================================
+            # self.hyper_parameters['backend'] = # TODO move to sub class field
             if self.problem == PROBLEM.IRIS:
                 self.ideal_vector[0] = np.array([1, 0, 0, 0])
                 self.ideal_vector[1] = np.array([0, 1, 0, 0])
                 self.ideal_vector[2] = np.array([0, 0, 1, 0])
+
 
     def translate_parameters_to_scipy(self) -> np.ndarray[float]:
         if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
@@ -162,12 +182,69 @@ class QuantumContext:
                 c.rz(omega, register)
             c.rx(np.pi / 2, registers)
             c.cz(0, 1)
+            c.measure_all()
 
-            state_vector = qi.Statevector.from_instruction(c)
+            # state_vector = qi.Statevector.from_instruction(c)
+            # job = execute(c, backend = self.hyper_parameters['backend'])
+            # estimator = Estimator(self.hyper_parameters['backend'])
+
+            sampler = Sampler(self.hyper_parameters['backend'])
+
+            # provider = IBMProvider()
+            # service = QiskitRuntimeService()
+            # estimator = Estimator(provider.get_backend('ibmq_qasm_simulator'))
+            # assumption; state vector should be either of 00, 01, 10, 11
+            # ideal_basis = qi.Pauli('IZ')
+
+            # op = self.ideal_operator(ideal_vector)
+            # job = estimator.run(circuits=[c], observables=[op], shots=1)
+            job = sampler.run(circuits=c)
+
+            # state_vector = qi.Statevector.from_instruction(c)
+            # print(state_vector.data)
 
             # print(ideal_vector)
             # print(state_vector)
-            return inner_product(ideal_vector, state_vector.data)
+            print(theta)
+
+            print(ideal_vector)
+            result = job.result()
+            print(result)
+
+
+
+            # return result.values[0]
+            return result.quasi_dists[0].get(self.ideal_label(ideal_vector), 0.0)
+            # return result.values[0] + result.values[-2]
+            # return inner_product(ideal_vector, state_vector.data)
+
+    def ideal_label(self, ideal_vector):
+        if ideal_vector[0] == 1:
+            print('II, IZ, ZI, ZZ')
+            return 0
+        elif ideal_vector[1] == 1:
+            print('II, minus_IZ, ZI, minus_ZZ')
+            return 1
+        elif ideal_vector[2] == 1:
+            print('II, IZ, minus_ZI, minus_ZZ')
+            return 2
+        else:
+            print('II')
+            return 3
+    # def ideal_operator(self, ideal_vector):
+    #     if ideal_vector[0] == 1:
+    #         print('II, IZ, ZI, ZZ')
+    #         return qi.SparsePauliOp(qi.PauliList([II, IZ, ZI, ZZ]))
+    #     elif ideal_vector[1] == 1:
+    #         print('II, minus_IZ, ZI, minus_ZZ')
+    #         return qi.SparsePauliOp(qi.PauliList([II, minus_IZ, ZI, minus_ZZ]))
+    #     elif ideal_vector[2] == 1:
+    #         print('II, IZ, minus_ZI, minus_ZZ')
+    #         return qi.SparsePauliOp(qi.PauliList([II, IZ, minus_ZI, minus_ZZ]))
+    #     else:
+    #         print('II')
+    #         return qi.SparsePauliOp(qi.PauliList([II]))
+
 
     def write_summary(self, acc_train, acc_test, chi_value, seed=30, epochs=3000):
         if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
