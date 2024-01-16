@@ -192,13 +192,11 @@ class QuantumContext:
             sampler = BackendSampler(self.hyper_parameters['backend'])
             # sampler = Sampler(self.hyper_parameters['backend'])
             job = sampler.run(circuits=c)
-            print(theta)
+            # print(theta)
 
-            print(ideal_vector)
+            # print(ideal_vector)
             result = job.result()
-            print(result)
-
-
+            # print(result)
 
             # return result.values[0]
             return result.quasi_dists[0].get(self.ideal_label(ideal_vector), 0.0)
@@ -207,16 +205,12 @@ class QuantumContext:
 
     def ideal_label(self, ideal_vector):
         if ideal_vector[0] == 1:
-            print('II, IZ, ZI, ZZ')
             return 0
         elif ideal_vector[1] == 1:
-            print('II, minus_IZ, ZI, minus_ZZ')
             return 1
         elif ideal_vector[2] == 1:
-            print('II, IZ, minus_ZI, minus_ZZ')
             return 2
         else:
-            print('II')
             return 3
     # def ideal_operator(self, ideal_vector):
     #     if ideal_vector[0] == 1:

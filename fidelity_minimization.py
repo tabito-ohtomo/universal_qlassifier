@@ -44,7 +44,8 @@ def fidelity_minimization(quantum_context: QuantumContext) -> float:
     params = quantum_context.translate_parameters_to_scipy()
     results = minimize(_objective_function_in_scipy, params,
                        args=quantum_context,
-                       method=quantum_context.parameter_optimization['method'])
+                       method=quantum_context.parameter_optimization['method'],
+                       options = {'disp': True, 'maxiter':100_000_000})
     optimized_params = results['x']
     optimized_objective_function_value = results['fun']
     quantum_context.kick_back_parameters_from_scipy_params(optimized_params)
