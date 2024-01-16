@@ -1,6 +1,7 @@
 import json
 from qiskit_ibm_provider import IBMProvider
 from qiskit_ibm_runtime import QiskitRuntimeService, Estimator, Sampler
+from qiskit.primitives import BackendSampler
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
@@ -8,6 +9,7 @@ from typing import Dict, Any, List, Tuple
 
 import numpy as np
 import qiskit.quantum_info as qi
+from qiskit import BasicAer
 from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
 
 from data.data_gen import PROBLEM
@@ -65,7 +67,10 @@ class QuantumContext:
             # provider = IBMProvider()
             # print(provider.backends())
             service = QiskitRuntimeService()
-            backend = service.get_backend("ibmq_qasm_simulator")
+            print(service.backends())
+            # backend = service.get_backend("ibmq_qasm_simulator")
+            backend = BasicAer.get_backend("qasm_simulator")
+
             self.hyper_parameters['backend'] = backend
             # ================================================================
             # self.hyper_parameters['backend'] = # TODO move to sub class field
@@ -184,27 +189,9 @@ class QuantumContext:
             c.cz(0, 1)
             c.measure_all()
 
-            # state_vector = qi.Statevector.from_instruction(c)
-            # job = execute(c, backend = self.hyper_parameters['backend'])
-            # estimator = Estimator(self.hyper_parameters['backend'])
-
-            sampler = Sampler(self.hyper_parameters['backend'])
-
-            # provider = IBMProvider()
-            # service = QiskitRuntimeService()
-            # estimator = Estimator(provider.get_backend('ibmq_qasm_simulator'))
-            # assumption; state vector should be either of 00, 01, 10, 11
-            # ideal_basis = qi.Pauli('IZ')
-
-            # op = self.ideal_operator(ideal_vector)
-            # job = estimator.run(circuits=[c], observables=[op], shots=1)
+            sampler = BackendSampler(self.hyper_parameters['backend'])
+            # sampler = Sampler(self.hyper_parameters['backend'])
             job = sampler.run(circuits=c)
-
-            # state_vector = qi.Statevector.from_instruction(c)
-            # print(state_vector.data)
-
-            # print(ideal_vector)
-            # print(state_vector)
             print(theta)
 
             print(ideal_vector)
