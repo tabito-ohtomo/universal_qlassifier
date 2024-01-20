@@ -13,7 +13,7 @@ from qiskit import BasicAer
 from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
 
 from data.data_gen import PROBLEM
-from domain.learning import LabeledDataSet, Label, Data, AccuracyTable
+from domain.learning import LabeledDataSet, Label, Data, AccuracyTable, LabeledData
 from domain.quantum import StateVectorData
 from quantum_impl.circuitery import circuit
 from save_data import create_folder, name_folder
@@ -68,10 +68,10 @@ class QuantumContext:
             # print(provider.backends())
             service = QiskitRuntimeService()
             print(service.backends())
-            # backend = service.get_backend("ibmq_qasm_simulator")
             backend = BasicAer.get_backend("qasm_simulator")
 
             self.hyper_parameters['backend'] = backend
+            # self.hyper_parameters['backend_cloud'] = service.get_backend("ibmq_qasm_simulator")
             # ================================================================
             # self.hyper_parameters['backend'] = # TODO move to sub class field
             if self.problem == PROBLEM.IRIS:
@@ -113,30 +113,26 @@ class QuantumContext:
     def predict(self, x: Data) -> Label:
         return max(self.ideal_vector.keys(), key=lambda label: self.calculate_fidelity(x, label))
 
-    def calculate_fidelity(
-            self, x: Data,
-            label: Label
-            # ideal_vector: StateVectorData
-    ) -> float:
-        # theta_aux = code_coords(theta, alpha, x)
-        return np.abs(self.create_circuit_and_project_to_ideal_vector(x, self.ideal_vector[label]))
-
-    def create_circuit_and_project_to_ideal_vector(
-            self, x: Data,
-            ideal_vector: StateVectorData
-    ) -> float:
+    def calculate_fidelity_batch(self, labeled_data_set: LabeledDataSet) -> List[float]:
         if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
             pass
-            # return inner_product(ideal_vector, create_circuit_by_qiskit(theta, alpha, x, entanglement))
         elif self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.SALINAS_2020:
-            theta = self.parameters['theta']
-            alpha = self.parameters['alpha']
-            entanglement = self.parameters_impl_specific['entanglement']
-            theta_aux = code_coords(theta, alpha, x)
-            c = circuit(theta_aux, entanglement)
-            return inner_product(ideal_vector, c.psi)
+            pass
         elif self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.CAPPELETTI_2020:
             theta = self.parameters['theta']
+
+            circuits = list(map(lambda x: self.circuit(theta, x[0]), labeled_data_set))
+
+            # sampler = Sampler(self.hyper_parameters['backend_cloud'])
+            sampler = BackendSampler(self.hyper_parameters['backend'])
+            job = sampler.run(circuits=circuits)
+            result = job.result()
+            print(result)
+            return list(map(lambda dist_to_data: dist_to_data[0].get(dist_to_data[1][1], 0.0),
+                            zip(result.quasi_dists, labeled_data_set)))
+
+
+    def circuit(self, theta: List[float] | np.ndarray, x: Data) -> QuantumCircuit:
             registers = QuantumRegister(2, 'qr')
             c = QuantumCircuit(registers)
 
@@ -188,44 +184,31 @@ class QuantumContext:
             c.rx(np.pi / 2, registers)
             c.cz(0, 1)
             c.measure_all()
+            return c
+
+    def calculate_fidelity(
+            self, x: Data,
+            label: Label
+    ) -> float:
+        if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
+            pass
+        elif self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.SALINAS_2020:
+            ideal_vector = self.ideal_vector[label]
+            theta = self.parameters['theta']
+            alpha = self.parameters['alpha']
+            entanglement = self.parameters_impl_specific['entanglement']
+            theta_aux = code_coords(theta, alpha, x)
+            c = circuit(theta_aux, entanglement)
+            return inner_product(ideal_vector, c.psi)
+        elif self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.CAPPELETTI_2020:
+            theta = self.parameters['theta']
+            registers = QuantumRegister(2, 'qr')
+            c = self.circuit(theta, x)
 
             sampler = BackendSampler(self.hyper_parameters['backend'])
-            # sampler = Sampler(self.hyper_parameters['backend'])
             job = sampler.run(circuits=c)
-            # print(theta)
-
-            # print(ideal_vector)
             result = job.result()
-            # print(result)
-
-            # return result.values[0]
-            return result.quasi_dists[0].get(self.ideal_label(ideal_vector), 0.0)
-            # return result.values[0] + result.values[-2]
-            # return inner_product(ideal_vector, state_vector.data)
-
-    def ideal_label(self, ideal_vector):
-        if ideal_vector[0] == 1:
-            return 0
-        elif ideal_vector[1] == 1:
-            return 1
-        elif ideal_vector[2] == 1:
-            return 2
-        else:
-            return 3
-    # def ideal_operator(self, ideal_vector):
-    #     if ideal_vector[0] == 1:
-    #         print('II, IZ, ZI, ZZ')
-    #         return qi.SparsePauliOp(qi.PauliList([II, IZ, ZI, ZZ]))
-    #     elif ideal_vector[1] == 1:
-    #         print('II, minus_IZ, ZI, minus_ZZ')
-    #         return qi.SparsePauliOp(qi.PauliList([II, minus_IZ, ZI, minus_ZZ]))
-    #     elif ideal_vector[2] == 1:
-    #         print('II, IZ, minus_ZI, minus_ZZ')
-    #         return qi.SparsePauliOp(qi.PauliList([II, IZ, minus_ZI, minus_ZZ]))
-    #     else:
-    #         print('II')
-    #         return qi.SparsePauliOp(qi.PauliList([II]))
-
+            return result.quasi_dists[0].get(label, 0.0)
 
     def write_summary(self, acc_train, acc_test, chi_value, seed=30, epochs=3000):
         if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:

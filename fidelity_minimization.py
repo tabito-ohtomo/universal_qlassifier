@@ -208,29 +208,6 @@ def _objective_function_in_scipy(
     quantum_context.kick_back_parameters_from_scipy_params(params)
     return -av_chi_square(quantum_context)
 
-
-def _chi_square(
-        quantum_context: QuantumContext,
-        data: LabeledData):  # Chi for one point
-    """
-    This function compute chi^2 for only one point
-    INPUT: 
-        -theta: set of parameters needed for the circuit. Must be an array with shape (qubits, layers, 3)
-        -alpha: set of parameters needed for the circuit. Must be an array with shape (qubits, layers, dimension of data)
-        -data: one data for training. It must be (x,y)
-        -reprs: variable encoding the label states of the different classes
-        -entanglement: whether there is entanglement or not in the Ansätze, just 'y'/'n'
-    OUTPUT: 
-        -chi^2 for data
-    """
-    #
-    x, y = data
-    # theta_aux = code_coords(theta, alpha, x)
-    # ans = calculate_fidelity(quantum_context, x, reprs[y])
-    ans = quantum_context.calculate_fidelity(x, y)
-    return ans
-
-
 def av_chi_square(quantum_context: QuantumContext):  # Chi in average
     """
     This function compute chi^2 for only one point
@@ -243,7 +220,8 @@ def av_chi_square(quantum_context: QuantumContext):  # Chi in average
     OUTPUT: 
         -Averaged chi^2 for data
     """
-    return np.average(list(map(lambda d: _chi_square(quantum_context, d), quantum_context.training_data)))
+    return np.average(quantum_context.calculate_fidelity_batch(quantum_context.training_data))
+    # return np.average(list(map(lambda d: _chi_square(quantum_context, d), quantum_context.training_data)))
 
 
 def code_coords(theta, alpha, x):  # Encoding of coordinates
