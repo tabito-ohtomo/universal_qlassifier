@@ -12,6 +12,7 @@ from scipy.optimize import minimize
 from domain.learning import LabeledDataSet, LabeledData
 from quantum_circuit import create_circuit_and_project_to_ideal_vector
 from quantum_optimization_context import QuantumContext
+from test_data import tester
 
 
 # This file provides the minimization for the cheap chi square
@@ -206,6 +207,8 @@ def _objective_function_in_scipy(
     """
     # theta, alpha = _translate_from_scipy(params, hypars)
     quantum_context.kick_back_parameters_from_scipy_params(params)
+    current_accuracy = tester(quantum_context, quantum_context.test_data)[0]
+    quantum_context.learning_state.add_accuracy(current_accuracy)
     return -av_chi_square(quantum_context)
 
 def av_chi_square(quantum_context: QuantumContext):  # Chi in average

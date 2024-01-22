@@ -4,7 +4,7 @@
 # Code by APS
 # Code-checks by ACL
 # June 3rd 2019
-
+from datetime import datetime
 
 # Universitat de Barcelona / Barcelona Supercomputing Center/Institut de Ciències del Cosmos
 
@@ -66,12 +66,13 @@ def minimizer(problem, qubits, entanglement, layers, method, name,
 
     # theta, alpha, f = fidelity_minimization(quantum_context, theta, alpha, train_data, reprs,
     f = fidelity_minimization(quantum_context)
+    quantum_context.learning_state.end_date = datetime.now()
     # batch_size, eta, epochs)
     print('==================================== train ====================================')
-    (acc_train, acc_train) = tester(quantum_context, quantum_context.training_data)
-    quantum_context.original_to_actual_accuracy_table_train = acc_train
+    (acc_train, acc_map_train) = tester(quantum_context, quantum_context.training_data)
+    quantum_context.original_to_actual_accuracy_table_train = acc_map_train
     print('==================================== test ====================================')
     (acc_test, acc_map_test) = tester(quantum_context, quantum_context.test_data)
-    quantum_context.original_to_actual_accuracy_table_acc_test = acc_test
+    quantum_context.original_to_actual_accuracy_table_acc_test = acc_map_test
 
     quantum_context.write_summary(acc_train, acc_test, f, seed, epochs)

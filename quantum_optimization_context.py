@@ -1,19 +1,19 @@
-import json
-from qiskit_ibm_provider import IBMProvider
-from qiskit_ibm_runtime import QiskitRuntimeService, Estimator, Sampler
-from qiskit.primitives import BackendSampler
+import itertools
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Iterable
 
+import more_itertools
 import numpy as np
 import qiskit.quantum_info as qi
 from qiskit import BasicAer
 from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
+from qiskit.primitives import BackendSampler
+from qiskit_ibm_runtime import QiskitRuntimeService, Sampler
 
 from data.data_gen import PROBLEM
-from domain.learning import LabeledDataSet, Label, Data, AccuracyTable, LabeledData
+from domain.learning import LabeledDataSet, Label, Data, AccuracyTable, LabeledData, LearningState
 from domain.quantum import StateVectorData
 from quantum_impl.circuitery import circuit
 from save_data import create_folder, name_folder
@@ -26,6 +26,7 @@ ZZ = qi.Pauli('ZZ')
 minus_IZ = qi.Pauli('-IZ')
 minus_ZI = qi.Pauli('-ZI')
 minus_ZZ = qi.Pauli('-ZZ')
+
 
 class OPTIMIZATION_QUANUM_IMPL(Enum):
     SALINAS_2020 = 1
@@ -46,6 +47,7 @@ class QuantumContext:
     ideal_vector: Dict[Label, StateVectorData]
     original_to_actual_accuracy_table_train: AccuracyTable
     original_to_actual_accuracy_table_test: AccuracyTable
+    learning_state: LearningState
 
     def initialize_parameters(self, qubits: int, layers: int):
         if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
@@ -71,14 +73,13 @@ class QuantumContext:
             backend = BasicAer.get_backend("qasm_simulator")
 
             self.hyper_parameters['backend'] = backend
-            # self.hyper_parameters['backend_cloud'] = service.get_backend("ibmq_qasm_simulator")
+            self.hyper_parameters['backend_cloud'] = service.get_backend("ibmq_qasm_simulator")
             # ================================================================
             # self.hyper_parameters['backend'] = # TODO move to sub class field
             if self.problem == PROBLEM.IRIS:
                 self.ideal_vector[0] = np.array([1, 0, 0, 0])
                 self.ideal_vector[1] = np.array([0, 1, 0, 0])
                 self.ideal_vector[2] = np.array([0, 0, 1, 0])
-
 
     def translate_parameters_to_scipy(self) -> np.ndarray[float]:
         if self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.QISKIT:
@@ -123,68 +124,84 @@ class QuantumContext:
 
             circuits = list(map(lambda x: self.circuit(theta, x[0]), labeled_data_set))
 
-            # sampler = Sampler(self.hyper_parameters['backend_cloud'])
-            sampler = BackendSampler(self.hyper_parameters['backend'])
+            sampler = Sampler(backend=self.hyper_parameters['backend_cloud'])
+            # sampler = BackendSampler(self.hyper_parameters['backend'])
             job = sampler.run(circuits=circuits)
             result = job.result()
-            print(result)
-            return list(map(lambda dist_to_data: dist_to_data[0].get(dist_to_data[1][1], 0.0),
-                            zip(result.quasi_dists, labeled_data_set)))
-
+            dists: List[Dict[int, float]] = result.quasi_dists
+            zipped = list(zip(dists, labeled_data_set))
+            ret =list(map(lambda dist_to_data: dist_to_data[0].get(dist_to_data[1][1], 0.0), zipped))
+            return ret
 
     def circuit(self, theta: List[float] | np.ndarray, x: Data) -> QuantumCircuit:
-            registers = QuantumRegister(2, 'qr')
-            c = QuantumCircuit(registers)
+        registers = QuantumRegister(2, 'qr')
+        c = QuantumCircuit(registers)
 
-            c.rx(np.pi / 2, registers)
-            for omega, register in zip(x[:2], registers):
-                c.rz(omega, register)
-            c.rx(np.pi / 2, registers)
-            c.cz(0, 1)
+        c.rx(np.pi / 2, registers)
+        for omega, register in zip(x[:2], registers):
+            c.rz(omega, register)
+        c.rx(np.pi / 2, registers)
+        c.cz(0, 1)
 
-            c.rx(np.pi / 2, registers)
-            for omega, register in zip(theta[:2], registers):
-                c.rz(omega, register)
-            c.rx(np.pi / 2, registers)
-            c.cz(0, 1)
+        c.rx(np.pi / 2, registers)
+        for omega, register in zip(theta[:2], registers):
+            c.rz(omega, register)
+        c.rx(np.pi / 2, registers)
+        c.cz(0, 1)
 
-            c.rx(np.pi / 2, registers)
-            for omega, register in zip(x[2:4], registers):
-                c.rz(omega, register)
-            c.rx(np.pi / 2, registers)
-            c.cz(0, 1)
+        c.rx(np.pi / 2, registers)
+        for omega, register in zip(x[2:4], registers):
+            c.rz(omega, register)
+        c.rx(np.pi / 2, registers)
+        c.cz(0, 1)
 
-            c.rx(np.pi / 2, registers)
-            for omega, register in zip(theta[2:4], registers):
-                c.rz(omega, register)
-            c.rx(np.pi / 2, registers)
-            c.cz(0, 1)
+        c.rx(np.pi / 2, registers)
+        for omega, register in zip(theta[2:4], registers):
+            c.rz(omega, register)
+        c.rx(np.pi / 2, registers)
+        c.cz(0, 1)
 
-            c.rx(np.pi / 2, registers)
-            for omega, register in zip(x[:2], registers):
-                c.rz(omega, register)
-            c.rx(np.pi / 2, registers)
-            c.cz(0, 1)
+        c.rx(np.pi / 2, registers)
+        for omega, register in zip(x[:2], registers):
+            c.rz(omega, register)
+        c.rx(np.pi / 2, registers)
+        c.cz(0, 1)
 
-            c.rx(np.pi / 2, registers)
-            for omega, register in zip(theta[4:6], registers):
-                c.rz(omega, register)
-            c.rx(np.pi / 2, registers)
-            c.cz(0, 1)
+        c.rx(np.pi / 2, registers)
+        for omega, register in zip(theta[4:6], registers):
+            c.rz(omega, register)
+        c.rx(np.pi / 2, registers)
+        c.cz(0, 1)
 
-            c.rx(np.pi / 2, registers)
-            for omega, register in zip(x[2:4], registers):
-                c.rz(omega, register)
-            c.rx(np.pi / 2, registers)
-            c.cz(0, 1)
+        c.rx(np.pi / 2, registers)
+        for omega, register in zip(x[2:4], registers):
+            c.rz(omega, register)
+        c.rx(np.pi / 2, registers)
+        c.cz(0, 1)
 
-            c.rx(np.pi / 2, registers)
-            for omega, register in zip(theta[6:8], registers):
-                c.rz(omega, register)
-            c.rx(np.pi / 2, registers)
-            c.cz(0, 1)
-            c.measure_all()
-            return c
+        c.rx(np.pi / 2, registers)
+        for omega, register in zip(theta[6:8], registers):
+            c.rz(omega, register)
+        c.rx(np.pi / 2, registers)
+        c.cz(0, 1)
+        c.measure_all()
+        return c
+
+    def predict_batch(self, data_set: List[Data]) -> List[Label]:
+        data_set_with_each_temporal_labels: List[List[LabeledData]] = \
+            list(map(lambda d: list(map(lambda label: (d, label), self.ideal_vector.keys())), data_set))
+        flatten = list(itertools.chain.from_iterable(data_set_with_each_temporal_labels))
+
+        ret: List[float] = self.calculate_fidelity_batch(flatten)
+        fidelities_with_each_temporal_labels: List[Tuple[LabeledData, float]] = list(zip(flatten, ret))
+
+        def max_by_chunked_label(labeled_data_with_fidelity: List[Tuple[LabeledData, float]])\
+                -> Tuple[LabeledData, float]:
+            return max(labeled_data_with_fidelity, key=lambda x: x[1])
+
+        fidelities_chunked_by_keys: List[Tuple[LabeledData, float]] = \
+            list(map(max_by_chunked_label, more_itertools.chunked(fidelities_with_each_temporal_labels, 3)))
+        return list(map(lambda x: x[0][1], fidelities_chunked_by_keys))
 
     def calculate_fidelity(
             self, x: Data,
@@ -202,10 +219,10 @@ class QuantumContext:
             return inner_product(ideal_vector, c.psi)
         elif self.optimization_quantum_impl == OPTIMIZATION_QUANUM_IMPL.CAPPELETTI_2020:
             theta = self.parameters['theta']
-            registers = QuantumRegister(2, 'qr')
             c = self.circuit(theta, x)
 
-            sampler = BackendSampler(self.hyper_parameters['backend'])
+            # sampler = BackendSampler(self.hyper_parameters['backend'])
+            sampler = Sampler(self.hyper_parameters['backend'])
             job = sampler.run(circuits=c)
             result = job.result()
             return result.quasi_dists[0].get(label, 0.0)
@@ -286,6 +303,13 @@ class QuantumContext:
             file_text.write('\nacc_test_map: \n')
             file_text.write(str(self.original_to_actual_accuracy_table_test.expected_to_actual))
 
+            file_text.write('\n\nlearning_state: \n')
+            file_text.write('start_date: ' + str(self.learning_state.start_date) + '\n')
+            file_text.write('end_date: ' + str(self.learning_state.end_date) + '\n')
+            file_text.write('accuracy: \n')
+            for acc in self.learning_state.accuracies:
+                file_text.write(str(acc) + '\n')
+
             file_text.close()
 
 
@@ -353,7 +377,9 @@ def create_quantum_context(
         parameter_optimization=parameter_optimization,
         ideal_vector=ideal_vector,
         original_to_actual_accuracy_table_train=AccuracyTable(),
-        original_to_actual_accuracy_table_test=AccuracyTable())
+        original_to_actual_accuracy_table_test=AccuracyTable(),
+        learning_state=LearningState()
+    )
 
 
 def inner_product(vector1: StateVectorData, vector2: StateVectorData) -> float:

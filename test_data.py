@@ -29,17 +29,9 @@ def tester(quantum_context: QuantumContext, data_to_test: LabeledDataSet) -> Tup
     OUTPUT:
         -success normalized
     """
-    total_map: Dict[Label, int] = {}
-    # acc_map: Dict[Label, int] = {}
     acc_map: AccuracyTable = AccuracyTable()
-    acc = 0
-    for d in data_to_test:
-        x, y = d
-        y_ = quantum_context.predict(x)
-        acc_map.add(y, y_)
-        if y == y_:
-            acc += 1
+    labels = quantum_context.predict_batch(list(map(lambda data: data[0], data_to_test)))
+    for (data, expected_label), predicted_label in zip(data_to_test, labels):
+        acc_map.add(expected_label, predicted_label)
 
-    print(acc_map.expected_to_actual)
-
-    return acc / len(quantum_context.test_data), acc_map
+    return acc_map.get_accuracy(), acc_map
